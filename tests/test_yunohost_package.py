@@ -62,3 +62,11 @@ class YunoHostInstallScriptTest(unittest.TestCase):
                 continue
             script_content: str = script_path.read_text()
             self.assertIn('source "$script_dir/_common.sh"', script_content)
+
+    def test_uses_current_backup_argument_names(self) -> None:
+        backup_script: str = (PROJECT_ROOT / "scripts" / "backup").read_text()
+
+        self.assertIn("--src_path=", backup_script)
+        self.assertIn("--dest_path=", backup_script)
+        self.assertNotIn("--src=", backup_script)
+        self.assertNotIn("--dest=", backup_script)

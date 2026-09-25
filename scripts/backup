@@ -3,5 +3,5 @@ source /usr/share/yunohost/helpers
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/_common.sh"
 
-ynh_backup --src="$install_dir" --dest="$YNH_BACKUP_DIR/apps/$app"
-ynh_backup --src="$data_dir" --dest="$YNH_BACKUP_DIR/apps/$app-data"
+ynh_backup --src_path="$install_dir" --dest_path="$YNH_BACKUP_DIR/apps/$app"
+ynh_backup --src_path="$data_dir" --dest_path="$YNH_BACKUP_DIR/apps/$app-data"

@@ -38,6 +38,8 @@ Le manifeste de paquet déclare les ressources YunoHost et la permission princip
 
 Les scripts YunoHost chargent `_common.sh` depuis leur propre dossier. Les opérations de sauvegarde et de mise à jour les exécutent depuis un répertoire temporaire ; un chemin relatif simple empêchait la sauvegarde de sécurité précédant toute mise à jour.
 
+Le helper `ynh_backup` de YunoHost 12 exige les arguments `--src_path` et `--dest_path`. Le paquet ne doit pas employer les anciens raccourcis `--src` et `--dest`, qui font échouer la sauvegarde de sécurité avant mise à jour.
+
 ## Limites connues
 
 L’environnement de construction actuel ne contient ni FastAPI, ni SQLAlchemy, ni les outils de lint/type/test déclarés. Aucun paquet n’a été installé conformément à la règle de sobriété des dépendances.
