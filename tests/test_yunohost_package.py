@@ -44,3 +44,11 @@ class YunoHostInstallScriptTest(unittest.TestCase):
         )
 
         self.assertLess(ownership_fix, virtual_environment)
+
+    def test_declares_yunohost_resources_and_single_instance_policy(self) -> None:
+        manifest: str = (PROJECT_ROOT / "manifest.toml").read_text()
+
+        self.assertIn("[resources]", manifest)
+        self.assertIn("[resources.permissions]", manifest)
+        self.assertIn('main.url = "/"', manifest)
+        self.assertIn("multi_instance = false", manifest)
