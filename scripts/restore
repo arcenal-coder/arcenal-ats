@@ -4,4 +4,4 @@ source /usr/share/yunohost/helpers
 
 ynh_restore_file --origin_path="apps/$app" --destination="$install_dir"
 ynh_restore_file --origin_path="apps/$app-data" --destination="$data_dir"
-ynh_systemctl --service="$app" --action="start"
+systemctl start "$app"

@@ -28,3 +28,10 @@ class YunoHostInstallScriptTest(unittest.TestCase):
         install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
 
         self.assertIn('"$YNH_APP_BASEDIR/README.md"', install_script)
+
+    def test_uses_systemd_commands_supported_by_yunohost_12(self) -> None:
+        script_paths: tuple[Path, ...] = tuple((PROJECT_ROOT / "scripts").glob("*"))
+        script_content: str = "\n".join(path.read_text() for path in script_paths)
+
+        self.assertNotIn("ynh_systemctl", script_content)
+        self.assertIn('systemctl start "$app"', script_content)

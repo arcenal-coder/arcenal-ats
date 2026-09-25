@@ -2,6 +2,6 @@
 source _common.sh
 source /usr/share/yunohost/helpers
 
-ynh_systemctl --service="$app" --action="stop" || true
+systemctl stop "$app" || true
 ynh_remove_systemd_config
 ynh_remove_nginx_config

@@ -30,6 +30,8 @@ Le journal YunoHost a confirmé que `ynh_psql_setup_db` stocke le mot de passe P
 
 Une installation interrompue peut laisser le rôle PostgreSQL dédié sans son réglage YunoHost. Lors d'une nouvelle installation, ce reliquat propre à l'application est supprimé avant la création de la base afin que YunoHost puisse générer et conserver un nouveau mot de passe.
 
+YunoHost 12 ne fournit pas le helper `ynh_systemctl`. Les scripts du paquet emploient directement `systemctl` pour démarrer, arrêter ou redémarrer le service après que les helpers ont installé son unité systemd.
+
 ## Limites connues
 
 L’environnement de construction actuel ne contient ni FastAPI, ni SQLAlchemy, ni les outils de lint/type/test déclarés. Aucun paquet n’a été installé conformément à la règle de sobriété des dépendances.
