@@ -35,3 +35,12 @@ class YunoHostInstallScriptTest(unittest.TestCase):
 
         self.assertNotIn("ynh_systemctl", script_content)
         self.assertIn('systemctl start "$app"', script_content)
+
+    def test_creates_the_virtual_environment_as_the_application_user(self) -> None:
+        install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
+        ownership_fix: int = install_script.index('chown -R "$app":"$app" "$install_dir"')
+        virtual_environment: int = install_script.index(
+            'runuser -u "$app" -- python3 -m venv "$install_dir/venv"'
+        )
+
+        self.assertLess(ownership_fix, virtual_environment)

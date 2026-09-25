@@ -19,7 +19,8 @@ install -d --mode=0750 --owner="$app" --group="$app" "$install_dir" "$data_dir/d
 cp -a "$YNH_APP_BASEDIR/src" "$install_dir/"
 cp -a "$YNH_APP_BASEDIR/migrations" "$install_dir/"
 cp "$YNH_APP_BASEDIR/alembic.ini" "$YNH_APP_BASEDIR/pyproject.toml" "$YNH_APP_BASEDIR/README.md" "$install_dir/"
-python3 -m venv "$install_dir/venv"
+chown -R "$app":"$app" "$install_dir"
+runuser -u "$app" -- python3 -m venv "$install_dir/venv"
 runuser -u "$app" -- "$install_dir/venv/bin/pip" install --no-cache-dir "$install_dir"
 runuser -u "$app" -- sh -c "cd '$install_dir' && ARCENAL_ATS_DATABASE_URL='postgresql+psycopg://$app:$psqlpwd@localhost/$app' venv/bin/alembic upgrade head"
 

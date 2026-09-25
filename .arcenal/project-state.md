@@ -32,6 +32,8 @@ Une installation interrompue peut laisser le rôle PostgreSQL dédié sans son r
 
 YunoHost 12 ne fournit pas le helper `ynh_systemctl`. Les scripts du paquet emploient directement `systemctl` pour démarrer, arrêter ou redémarrer le service après que les helpers ont installé son unité systemd.
 
+L'environnement virtuel est créé avec l'utilisateur système de l'application après attribution explicite de son répertoire d'installation. Cela évite qu'un environnement créé par `root` bloque l'installation des dépendances lors d'une nouvelle instance ou d'une reprise.
+
 ## Limites connues
 
 L’environnement de construction actuel ne contient ni FastAPI, ni SQLAlchemy, ni les outils de lint/type/test déclarés. Aucun paquet n’a été installé conformément à la règle de sobriété des dépendances.
