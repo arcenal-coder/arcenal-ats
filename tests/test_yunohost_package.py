@@ -11,7 +11,7 @@ class YunoHostInstallScriptTest(unittest.TestCase):
     def test_loads_database_password_before_systemd_rendering(self) -> None:
         install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
         password_load: int = install_script.index('psqlpwd="$(ynh_app_setting_get')
-        systemd_render: int = install_script.index("ynh_add_systemd_config")
+        systemd_render: int = install_script.index("ynh_config_add_systemd")
 
         self.assertLess(password_load, systemd_render)
 
