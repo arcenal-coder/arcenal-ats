@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from html import escape
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
@@ -14,6 +13,11 @@ from sqlalchemy.orm import Session, sessionmaker
 from arcenal_ats.config import default_settings
 from arcenal_ats.database import create_session_factory, session_scope
 from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY, DomainValidationError, PipelineStage
+from arcenal_ats.presentation import (
+    careers_page as render_careers_page,
+    job_page as render_job_page,
+    stylesheet,
+)
 from arcenal_ats.schemas import (
     AacpCapability,
     ApplicationAccepted,
@@ -75,11 +79,8 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/recrutement", response_class=HTMLResponse, tags=["public"])
     def careers_page(session: Session = Depends(get_session)) -> str:
         jobs = published_jobs(session)
-        items = "".join(
-            f'<li><a href="/recrutement/offres/{job.slug}">{job.title}</a> — {job.location}</li>'
-            for job in jobs
-        )
-        return careers_document(items)
+        job_cards = [(job.slug, job.title, job.location) for job in jobs]
+        return render_careers_page(job_cards)
 
     @app.get("/recrutement/offres/{job_slug}", response_class=HTMLResponse, tags=["public"])
     def job_page(job_slug: str, session: Session = Depends(get_session)) -> str:
@@ -87,7 +88,11 @@ def register_routes(app: FastAPI) -> None:
             job = published_job(session, job_slug)
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
-        return job_document(job.title, job.location, job.description)
+        return render_job_page(job.title, job.location, job.description)
+
+    @app.get("/public/arcenal-ats.css", tags=["public"])
+    def public_stylesheet() -> Response:
+        return Response(content=stylesheet(), media_type="text/css")
 
     @app.get("/public/arcenal-jobs.js", tags=["public"])
     def jobs_widget() -> Response:
@@ -239,24 +244,6 @@ def submit_public_application(
     except PermissionError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     return ApplicationAccepted(application_id=application.id, message="Application received.")
-
-
-def careers_document(items: str) -> str:
-    return (
-        "<main><h1>Recrutement</h1><p>Nos offres publiées</p>"
-        f"<ul>{items}</ul>"
-        "<a href='/recrutement/candidature-spontanee'>Candidature spontanée</a></main>"
-    )
-
-
-def job_document(title: str, location: str, description: str) -> str:
-    safe_title = escape(title)
-    safe_location = escape(location)
-    safe_description = escape(description).replace("\n", "<br>")
-    return (
-        f"<main><h1>{safe_title}</h1><p>{safe_location}</p>"
-        f"<article>{safe_description}</article></main>"
-    )
 
 
 def save_document(

@@ -11,6 +11,7 @@ Le dépôt distant était vide à l’exception de la licence. Les projets `arc-
 ## Décisions actives
 
 - FastAPI sert l’API publique et l’interface HTML minimale.
+- Le portail public reprend les jetons sombres d’ARCenal Agent : fond graphite, surfaces bleu nuit et accents or/ambre.
 - PostgreSQL est l’unique base de données cible ; une migration initiale Alembic décrit le schéma.
 - Les documents utilisent un répertoire privé configurable hors racine web.
 - Le portail `/recrutement`, le widget et l’API `/public-api/v1` sont publics ; l’espace interne est protégé par l’identité injectée par SSOwat.
