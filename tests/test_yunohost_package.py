@@ -63,13 +63,13 @@ class YunoHostInstallScriptTest(unittest.TestCase):
             script_content: str = script_path.read_text()
             self.assertIn('source "$script_dir/_common.sh"', script_content)
 
-    def test_uses_current_backup_argument_names(self) -> None:
+    def test_uses_portable_positional_backup_arguments(self) -> None:
         backup_script: str = (PROJECT_ROOT / "scripts" / "backup").read_text()
 
-        self.assertIn("--src_path=", backup_script)
-        self.assertIn("--dest_path=", backup_script)
-        self.assertNotIn("--src=", backup_script)
-        self.assertNotIn("--dest=", backup_script)
+        self.assertIn('ynh_backup "$install_dir" "apps/$app"', backup_script)
+        self.assertIn('ynh_backup "$data_dir" "apps/$app-data"', backup_script)
+        self.assertNotIn("--src", backup_script)
+        self.assertNotIn("--dest", backup_script)
 
     def test_redirects_the_application_root_to_the_public_careers_page(self) -> None:
         nginx_config: str = (PROJECT_ROOT / "conf" / "nginx.conf").read_text()
