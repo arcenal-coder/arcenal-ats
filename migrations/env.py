@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from os import environ
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
@@ -11,6 +13,10 @@ import arcenal_ats.models  # noqa: F401
 
 config = context.config
 target_metadata = Base.metadata
+database_url = environ.get("ARCENAL_ATS_DATABASE_URL")
+
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 
 def run_migrations_offline() -> None:

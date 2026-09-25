@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from os import environ
 from pathlib import Path
+from typing import Mapping
 
 
 class ConfigurationError(ValueError):
@@ -27,11 +29,24 @@ class Settings:
 
 
 def default_settings() -> Settings:
+    return settings_from_environment(environ)
+
+
+def settings_from_environment(environment: Mapping[str, str]) -> Settings:
     settings = Settings(
-        database_url="postgresql+psycopg://arcenal_ats@localhost/arcenal_ats",
-        document_directory=Path("/var/lib/arcenal-ats/documents"),
-        public_base_url="https://localhost",
-        allowed_widget_origins=(),
+        database_url=environment.get(
+            "ARCENAL_ATS_DATABASE_URL",
+            "postgresql+psycopg://arcenal_ats@localhost/arcenal_ats",
+        ),
+        document_directory=Path(
+            environment.get("ARCENAL_ATS_DOCUMENT_DIRECTORY", "/var/lib/arcenal-ats/documents")
+        ),
+        public_base_url=environment.get("ARCENAL_ATS_PUBLIC_BASE_URL", "https://localhost"),
+        allowed_widget_origins=allowed_origins(environment.get("ARCENAL_ATS_ALLOWED_WIDGET_ORIGINS", "")),
     )
     settings.validate()
     return settings
+
+
+def allowed_origins(value: str) -> tuple[str, ...]:
+    return tuple(origin.strip() for origin in value.split(",") if origin.strip())
