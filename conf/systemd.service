@@ -6,7 +6,7 @@ After=network.target postgresql.service
 User=__APP__
 Group=__APP__
 WorkingDirectory=__INSTALL_DIR__
-Environment=ARCENAL_ATS_DATABASE_URL=postgresql+psycopg:///__APP__
+Environment=ARCENAL_ATS_DATABASE_URL=postgresql+psycopg://__APP__:__PSQLPWD__@localhost/__APP__
 Environment=ARCENAL_ATS_DOCUMENT_DIRECTORY=__DATA_DIR__/documents
 Environment=ARCENAL_ATS_PUBLIC_BASE_URL=https://__DOMAIN____PATH__
 ExecStart=__INSTALL_DIR__/venv/bin/uvicorn arcenal_ats.main:app --host 127.0.0.1 --port __PORT__ --proxy-headers

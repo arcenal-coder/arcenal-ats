@@ -7,17 +7,17 @@ port="$(ynh_find_port --port=8000)"
 ynh_script_progression --message="Installing ARCenal ATS" --weight=1
 ynh_app_setting_set --app="$app" --key=port --value="$port"
 ynh_system_user_create --username="$app" --home_dir="$install_dir"
-ynh_psql_create_db --database="$app" --user="$app"
+ynh_psql_setup_db --db_user="$app" --db_name="$app"
 
 ynh_script_progression --message="Preparing the application runtime" --weight=5
 ynh_install_app_dependencies python3-venv python3-pip
 install -d --mode=0750 --owner="$app" --group="$app" "$install_dir" "$data_dir/documents"
 cp -a "$YNH_APP_BASEDIR/src" "$install_dir/"
 cp -a "$YNH_APP_BASEDIR/migrations" "$install_dir/"
-cp "$YNH_APP_BASEDIR/alembic.ini" "$YNH_APP_BASEDIR/pyproject.toml" "$install_dir/"
+cp "$YNH_APP_BASEDIR/alembic.ini" "$YNH_APP_BASEDIR/pyproject.toml" "$YNH_APP_BASEDIR/README.md" "$install_dir/"
 python3 -m venv "$install_dir/venv"
 runuser -u "$app" -- "$install_dir/venv/bin/pip" install --no-cache-dir "$install_dir"
-runuser -u "$app" -- sh -c "cd '$install_dir' && ARCENAL_ATS_DATABASE_URL='postgresql+psycopg:///$app' venv/bin/alembic upgrade head"
+runuser -u "$app" -- sh -c "cd '$install_dir' && ARCENAL_ATS_DATABASE_URL='postgresql+psycopg://$app:$db_pwd@localhost/$app' venv/bin/alembic upgrade head"
 
 ynh_script_progression --message="Configuring ARCenal ATS" --weight=2
 ynh_add_config --template="nginx.conf" --destination="/etc/nginx/conf.d/$domain.d/$app.conf"
