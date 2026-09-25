@@ -1,0 +1,19 @@
+[Unit]
+Description=ARCenal ATS
+After=network.target postgresql.service
+
+[Service]
+User=__APP__
+Group=__APP__
+WorkingDirectory=__INSTALL_DIR__
+Environment=ARCENAL_ATS_SETTINGS=__INSTALL_DIR__/settings.env
+ExecStart=__INSTALL_DIR__/venv/bin/uvicorn arcenal_ats.main:app --host 127.0.0.1 --port __PORT__ --proxy-headers
+Restart=on-failure
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=__DATA_DIR__
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

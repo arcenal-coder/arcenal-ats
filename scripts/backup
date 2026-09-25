@@ -1,0 +1,6 @@
+#!/bin/bash
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_backup --src="$install_dir" --dest="$YNH_BACKUP_DIR/apps/$app"
+ynh_backup --src="$data_dir" --dest="$YNH_BACKUP_DIR/apps/$app-data"

@@ -1,0 +1,32 @@
+packaging_format = 2
+id = "arcenal_ats"
+name = "ARCenal ATS"
+description.en = "Autonomous recruitment and careers portal"
+description.fr = "Gestion du recrutement et portail carrière autonome"
+version = "0.1.0~ynh1"
+maintainers = ["ARCenal"]
+
+[upstream]
+license = "AGPL-3.0-or-later"
+code = "https://github.com/arcenal-coder/arcenal-ats"
+
+[integration]
+yunohost = ">= 11.2"
+architectures = "all"
+multi_instance = true
+ldap = true
+sso = true
+disk = "100M"
+ram.build = "300M"
+ram.runtime = "150M"
+
+[install.domain]
+type = "domain"
+
+[install.path]
+type = "path"
+default = "/ats"
+
+[install.init_main_permission]
+type = "group"
+default = "all_users"

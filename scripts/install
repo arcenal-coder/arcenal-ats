@@ -1,0 +1,9 @@
+#!/bin/bash
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression --message="Installing ARCenal ATS" --weight=1
+ynh_app_setting_set --app="$app" --key=port --value="$port"
+ynh_add_config --template="nginx.conf" --destination="/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_add_systemd_config
+ynh_systemctl --service="$app" --action="start"

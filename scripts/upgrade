@@ -1,0 +1,6 @@
+#!/bin/bash
+source _common.sh
+source /usr/share/yunohost/helpers
+
+ynh_script_progression --message="Updating ARCenal ATS" --weight=1
+ynh_systemctl --service="$app" --action="restart"
