@@ -70,3 +70,22 @@ class YunoHostInstallScriptTest(unittest.TestCase):
         self.assertIn("--dest_path=", backup_script)
         self.assertNotIn("--src=", backup_script)
         self.assertNotIn("--dest=", backup_script)
+
+    def test_redirects_the_application_root_to_the_public_careers_page(self) -> None:
+        nginx_config: str = (PROJECT_ROOT / "conf" / "nginx.conf").read_text()
+
+        self.assertIn("location = __PATH__ {", nginx_config)
+        self.assertEqual(nginx_config.count("auth_request off;"), 3)
+        self.assertIn("return 302 __PATH__/recrutement;", nginx_config)
+        self.assertIn("public-api/v1(?:/|$)", nginx_config)
+        self.assertIn("public(?:/|$)", nginx_config)
+        self.assertIn("auth_request off;", nginx_config)
+
+    def test_upgrade_refreshes_runtime_and_proxy_configuration(self) -> None:
+        upgrade_script: str = (PROJECT_ROOT / "scripts" / "upgrade").read_text()
+
+        self.assertIn('cp -a "$YNH_APP_BASEDIR/src/." "$install_dir/src/"', upgrade_script)
+        self.assertIn("--force-reinstall", upgrade_script)
+        self.assertIn('ynh_add_config --template="nginx.conf"', upgrade_script)
+        self.assertIn("nginx -t", upgrade_script)
+        self.assertIn("systemctl reload nginx", upgrade_script)

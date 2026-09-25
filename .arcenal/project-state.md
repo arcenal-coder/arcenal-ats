@@ -40,6 +40,8 @@ Les scripts YunoHost chargent `_common.sh` depuis leur propre dossier. Les opér
 
 Le helper `ynh_backup` de YunoHost 12 exige les arguments `--src_path` et `--dest_path`. Le paquet ne doit pas employer les anciens raccourcis `--src` et `--dest`, qui font échouer la sauvegarde de sécurité avant mise à jour.
 
+L'instance publiée ne déployait pas les fichiers applicatifs ni le proxy Nginx lors d'une mise à jour : son ancien script se limitait à redémarrer le service. Le paquet applique désormais le code, les migrations, l'unité systemd et la configuration Nginx pendant les mises à jour. La racine `/ats` redirige vers le portail public `/ats/recrutement`; les pages, API publique et ressources CSS/JS ne passent pas par SSOwat.
+
 ## Limites connues
 
 L’environnement de construction actuel ne contient ni FastAPI, ni SQLAlchemy, ni les outils de lint/type/test déclarés. Aucun paquet n’a été installé conformément à la règle de sobriété des dépendances.

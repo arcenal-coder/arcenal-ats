@@ -3,5 +3,21 @@ source /usr/share/yunohost/helpers
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/_common.sh"
 
-ynh_script_progression --message="Updating ARCenal ATS" --weight=1
-systemctl restart "$app"
+ynh_script_progression --message="Updating ARCenal ATS" --weight=5
+systemctl stop "$app"
+install -d --mode=0750 --owner="$app" --group="$app" "$install_dir/src" "$data_dir/documents"
+cp -a "$YNH_APP_BASEDIR/src/." "$install_dir/src/"
+cp -a "$YNH_APP_BASEDIR/migrations/." "$install_dir/migrations/"
+cp "$YNH_APP_BASEDIR/alembic.ini" "$YNH_APP_BASEDIR/pyproject.toml" "$YNH_APP_BASEDIR/README.md" "$install_dir/"
+chown -R "$app":"$app" "$install_dir" "$data_dir"
+runuser -u "$app" -- "$install_dir/venv/bin/pip" install --no-cache-dir --force-reinstall "$install_dir"
+
+psqlpwd="$(ynh_app_setting_get --app="$app" --key=psqlpwd)"
+runuser -u "$app" -- sh -c "cd '$install_dir' && ARCENAL_ATS_DATABASE_URL='postgresql+psycopg://$app:$psqlpwd@localhost/$app' venv/bin/alembic upgrade head"
+
+ynh_script_progression --message="Refreshing ARCenal ATS services" --weight=2
+ynh_add_config --template="nginx.conf" --destination="/etc/nginx/conf.d/$domain.d/$app.conf"
+ynh_add_systemd_config
+nginx -t
+systemctl reload nginx
+systemctl start "$app"
