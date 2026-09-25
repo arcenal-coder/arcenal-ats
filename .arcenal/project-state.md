@@ -28,6 +28,8 @@ Le dépôt distant était vide à l’exception de la licence. Les projets `arc-
 
 Le journal YunoHost a confirmé que `ynh_psql_setup_db` stocke le mot de passe PostgreSQL dans le réglage `psqlpwd`. Le script d’installation le recharge désormais avant de lancer la migration et de rendre le service systemd, qui en a besoin pour remplacer `__PSQLPWD__`. Un test de régression vérifie cet ordre.
 
+Une installation interrompue peut laisser le rôle PostgreSQL dédié sans son réglage YunoHost. Lors d'une nouvelle installation, ce reliquat propre à l'application est supprimé avant la création de la base afin que YunoHost puisse générer et conserver un nouveau mot de passe.
+
 ## Limites connues
 
 L’environnement de construction actuel ne contient ni FastAPI, ni SQLAlchemy, ni les outils de lint/type/test déclarés. Aucun paquet n’a été installé conformément à la règle de sobriété des dépendances.

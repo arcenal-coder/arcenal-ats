@@ -7,6 +7,9 @@ port="$(ynh_find_port --port=8000)"
 ynh_script_progression --message="Installing ARCenal ATS" --weight=1
 ynh_app_setting_set --app="$app" --key=port --value="$port"
 ynh_system_user_create --username="$app" --home_dir="$install_dir"
+if ynh_psql_user_exists --user="$app"; then
+    ynh_psql_remove_db --db_user="$app" --db_name="$app"
+fi
 ynh_psql_setup_db --db_user="$app" --db_name="$app"
 psqlpwd="$(ynh_app_setting_get --app="$app" --key=psqlpwd)"
 

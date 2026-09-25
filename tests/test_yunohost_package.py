@@ -15,6 +15,15 @@ class YunoHostInstallScriptTest(unittest.TestCase):
 
         self.assertLess(password_load, systemd_render)
 
+    def test_removes_a_stale_database_user_before_setup(self) -> None:
+        install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
+        stale_user_check: int = install_script.index('ynh_psql_user_exists --user="$app"')
+        database_cleanup: int = install_script.index("ynh_psql_remove_db")
+        database_setup: int = install_script.index("ynh_psql_setup_db")
+
+        self.assertLess(stale_user_check, database_cleanup)
+        self.assertLess(database_cleanup, database_setup)
+
     def test_copies_readme_for_python_package_build(self) -> None:
         install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
 
