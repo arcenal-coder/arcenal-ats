@@ -3,7 +3,7 @@ id = "arcenal_ats"
 name = "ARCenal ATS"
 description.en = "Autonomous recruitment and careers portal"
 description.fr = "Gestion du recrutement et portail carrière autonome"
-version = "0.1.0~ynh2"
+version = "0.1.0~ynh3"
 maintainers = ["ARCenal"]
 
 [upstream]

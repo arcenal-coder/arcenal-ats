@@ -52,3 +52,13 @@ class YunoHostInstallScriptTest(unittest.TestCase):
         self.assertIn("[resources.permissions]", manifest)
         self.assertIn('main.url = "/"', manifest)
         self.assertIn("multi_instance = false", manifest)
+
+    def test_loads_common_settings_from_each_script_directory(self) -> None:
+        script_directory: Path = PROJECT_ROOT / "scripts"
+        script_paths: tuple[Path, ...] = tuple(script_directory.glob("*"))
+
+        for script_path in script_paths:
+            if script_path.name == "_common.sh":
+                continue
+            script_content: str = script_path.read_text()
+            self.assertIn('source "$script_dir/_common.sh"', script_content)

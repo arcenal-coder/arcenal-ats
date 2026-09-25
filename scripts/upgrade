@@ -1,6 +1,7 @@
 #!/bin/bash
-source _common.sh
 source /usr/share/yunohost/helpers
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/_common.sh"
 
 ynh_script_progression --message="Updating ARCenal ATS" --weight=1
 systemctl restart "$app"

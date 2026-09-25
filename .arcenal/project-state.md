@@ -36,6 +36,8 @@ L'environnement virtuel est créé avec l'utilisateur système de l'application 
 
 Le manifeste de paquet déclare les ressources YunoHost et la permission principale. Sans la table `resources`, YunoHost 12 levait une erreur interne lors de la lecture détaillée d'une application. ARCenal ATS est désormais mono-instance pour empêcher plusieurs services de revendiquer la même URL.
 
+Les scripts YunoHost chargent `_common.sh` depuis leur propre dossier. Les opérations de sauvegarde et de mise à jour les exécutent depuis un répertoire temporaire ; un chemin relatif simple empêchait la sauvegarde de sécurité précédant toute mise à jour.
+
 ## Limites connues
 
 L’environnement de construction actuel ne contient ni FastAPI, ni SQLAlchemy, ni les outils de lint/type/test déclarés. Aucun paquet n’a été installé conformément à la règle de sobriété des dépendances.

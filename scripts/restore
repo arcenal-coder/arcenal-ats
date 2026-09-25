@@ -1,6 +1,7 @@
 #!/bin/bash
-source _common.sh
 source /usr/share/yunohost/helpers
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/_common.sh"
 
 ynh_restore_file --origin_path="apps/$app" --destination="$install_dir"
 ynh_restore_file --origin_path="apps/$app-data" --destination="$data_dir"

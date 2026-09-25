@@ -1,6 +1,7 @@
 #!/bin/bash
 source /usr/share/yunohost/helpers
-source _common.sh
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/_common.sh"
 
 port="$(ynh_find_port --port=8000)"
 
