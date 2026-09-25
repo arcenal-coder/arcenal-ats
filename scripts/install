@@ -26,6 +26,6 @@ runuser -u "$app" -- "$install_dir/venv/bin/pip" install --no-cache-dir "$instal
 runuser -u "$app" -- sh -c "cd '$install_dir' && ARCENAL_ATS_DATABASE_URL='postgresql+psycopg://$app:$psqlpwd@localhost/$app' venv/bin/alembic upgrade head"
 
 ynh_script_progression --message="Configuring ARCenal ATS" --weight=2
-ynh_add_config --template="nginx.conf" --destination="/etc/nginx/conf.d/$domain.d/$app.conf"
-ynh_add_systemd_config
+ynh_config_add_nginx
+ynh_config_add_systemd
 systemctl start "$app"

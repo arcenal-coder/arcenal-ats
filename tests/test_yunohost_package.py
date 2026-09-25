@@ -86,6 +86,18 @@ class YunoHostInstallScriptTest(unittest.TestCase):
 
         self.assertIn('cp -a "$YNH_APP_BASEDIR/src/." "$install_dir/src/"', upgrade_script)
         self.assertIn("--force-reinstall", upgrade_script)
-        self.assertIn('ynh_add_config --template="nginx.conf"', upgrade_script)
+        self.assertIn("ynh_config_add_nginx", upgrade_script)
+        self.assertIn("ynh_config_add_systemd", upgrade_script)
         self.assertIn("nginx -t", upgrade_script)
         self.assertIn("systemctl reload nginx", upgrade_script)
+
+    def test_uses_yunohost_21_configuration_helpers(self) -> None:
+        install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
+        remove_script: str = (PROJECT_ROOT / "scripts" / "remove").read_text()
+        restore_script: str = (PROJECT_ROOT / "scripts" / "restore").read_text()
+
+        self.assertIn("ynh_config_add_nginx", install_script)
+        self.assertIn("ynh_config_add_systemd", install_script)
+        self.assertIn("ynh_config_remove_nginx", remove_script)
+        self.assertIn("ynh_config_remove_systemd", remove_script)
+        self.assertIn("ynh_restore_everything", restore_script)
