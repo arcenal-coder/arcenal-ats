@@ -1,7 +1,7 @@
 # ARCenal ATS — état du projet
 
 - Date : 2026-09-25
-- Branche observée : `main`, commit initial `69bd1a7`
+- Branche active : `main`, paquet YunoHost publié aussi sur `stable`
 - Objectif : socle V1 Python/FastAPI/PostgreSQL autonome, avec portail carrière public et paquet YunoHost.
 
 ## État observé
@@ -23,6 +23,10 @@ Le dépôt distant était vide à l’exception de la licence. Les projets `arc-
 1. `ruff check .`
 2. `mypy src`
 3. `python -m unittest discover -s tests -v` (sans dépendance externe) puis `pytest` dans l’environnement de développement.
+
+## Correctif d’installation en cours
+
+Le journal YunoHost a confirmé que `ynh_psql_setup_db` stocke le mot de passe PostgreSQL dans le réglage `psqlpwd`. Le script d’installation le recharge désormais avant de lancer la migration et de rendre le service systemd, qui en a besoin pour remplacer `__PSQLPWD__`. Un test de régression vérifie cet ordre.
 
 ## Limites connues
 
