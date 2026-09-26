@@ -3,10 +3,7 @@ source /usr/share/yunohost/helpers
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/_common.sh"
 
-port="$(ynh_find_port --port=8000)"
-
 ynh_script_progression --message="Installing ARCenal ATS" --weight=1
-ynh_app_setting_set --app="$app" --key=port --value="$port"
 ynh_system_user_create --username="$app" --home_dir="$install_dir"
 if ynh_psql_user_exists --user="$app"; then
     ynh_psql_remove_db --db_user="$app" --db_name="$app"

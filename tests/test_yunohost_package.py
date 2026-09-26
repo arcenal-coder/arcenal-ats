@@ -52,6 +52,13 @@ class YunoHostInstallScriptTest(unittest.TestCase):
         self.assertIn("[resources.permissions]", manifest)
         self.assertIn('main.url = "/"', manifest)
         self.assertIn("multi_instance = false", manifest)
+        self.assertIn("[resources.ports]", manifest)
+        self.assertIn("main.default = 8000", manifest)
+
+    def test_uses_the_manifest_port_resource(self) -> None:
+        install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
+
+        self.assertNotIn("ynh_find_port", install_script)
 
     def test_loads_common_settings_from_each_script_directory(self) -> None:
         script_directory: Path = PROJECT_ROOT / "scripts"
