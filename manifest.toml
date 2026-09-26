@@ -3,7 +3,7 @@ id = "arcenal_ats"
 name = "ARCenal ATS"
 description.en = "Autonomous recruitment and careers portal"
 description.fr = "Gestion du recrutement et portail carrière autonome"
-version = "0.1.0~ynh8"
+version = "0.1.0~ynh9"
 maintainers = ["ARCenal"]
 
 [upstream]
@@ -36,6 +36,9 @@ default = "all_users"
 
 [resources.ports]
 main.default = 8000
+
+[resources.database]
+type = "postgresql"
 
 [resources.permissions]
 main.url = "/"

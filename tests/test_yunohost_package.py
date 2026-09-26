@@ -8,21 +8,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 class YunoHostInstallScriptTest(unittest.TestCase):
-    def test_loads_database_password_before_systemd_rendering(self) -> None:
+    def test_uses_the_database_resource_credentials(self) -> None:
         install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
-        password_load: int = install_script.index('psqlpwd="$(ynh_app_setting_get')
-        systemd_render: int = install_script.index("ynh_config_add_systemd")
+        manifest: str = (PROJECT_ROOT / "manifest.toml").read_text()
 
-        self.assertLess(password_load, systemd_render)
-
-    def test_removes_a_stale_database_user_before_setup(self) -> None:
-        install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
-        stale_user_check: int = install_script.index('ynh_psql_user_exists --user="$app"')
-        database_cleanup: int = install_script.index("ynh_psql_remove_db")
-        database_setup: int = install_script.index("ynh_psql_setup_db")
-
-        self.assertLess(stale_user_check, database_cleanup)
-        self.assertLess(database_cleanup, database_setup)
+        self.assertIn('[resources.database]', manifest)
+        self.assertIn('type = "postgresql"', manifest)
+        self.assertIn('$db_user:$db_pwd@localhost/$db_name', install_script)
+        self.assertNotIn("ynh_psql_setup_db", install_script)
 
     def test_copies_readme_for_python_package_build(self) -> None:
         install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()

@@ -12,8 +12,7 @@ cp "$YNH_APP_BASEDIR/alembic.ini" "$YNH_APP_BASEDIR/pyproject.toml" "$YNH_APP_BA
 chown -R "$app":"$app" "$install_dir" "$data_dir"
 runuser -u "$app" -- "$install_dir/venv/bin/pip" install --no-cache-dir --force-reinstall "$install_dir"
 
-psqlpwd="$(ynh_app_setting_get --app="$app" --key=psqlpwd)"
-runuser -u "$app" -- sh -c "cd '$install_dir' && ARCENAL_ATS_DATABASE_URL='postgresql+psycopg://$app:$psqlpwd@localhost/$app' venv/bin/alembic upgrade head"
+runuser -u "$app" -- sh -c "cd '$install_dir' && ARCENAL_ATS_DATABASE_URL='postgresql+psycopg://$db_user:$db_pwd@localhost/$db_name' venv/bin/alembic upgrade head"
 
 ynh_script_progression --message="Refreshing ARCenal ATS services" --weight=2
 ynh_config_add_nginx
