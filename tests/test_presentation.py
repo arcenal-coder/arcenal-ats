@@ -41,12 +41,24 @@ class PresentationTest(unittest.TestCase):
 
     def test_renders_recruiter_actions_under_the_internal_path(self) -> None:
         page = internal_jobs_page(
-            [("python-developer", "Python Developer", "Paris", "draft")],
+            [
+                (
+                    "python-developer",
+                    "Python Developer",
+                    "Paris",
+                    "CDI",
+                    "Résumé",
+                    "Description",
+                    "draft",
+                )
+            ],
             "/ats",
         )
 
         self.assertIn("/ats/interne/offres", page)
         self.assertIn("/ats/interne/offres/python-developer/publier", page)
+        self.assertIn("/ats/interne/offres/python-developer/modifier", page)
+        self.assertIn("/ats/interne/offres/python-developer/archiver", page)
 
     def test_renders_the_full_v1_pipeline_in_the_recruiter_view(self) -> None:
         page = internal_applications_page(

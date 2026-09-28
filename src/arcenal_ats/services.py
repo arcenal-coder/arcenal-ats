@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from arcenal_ats.domain import JobStatus, PipelineStage
 from arcenal_ats.models import Application, ApplicationNote, AuditEvent, Candidate, Document, Job
-from arcenal_ats.schemas import JobCreate, PublicApplicationCreate
+from arcenal_ats.schemas import JobCreate, JobUpdate, PublicApplicationCreate
 
 
 class PublicApplicationService:
@@ -134,8 +134,55 @@ def publish_job(session: Session, slug: str, actor: str) -> Job:
     return job
 
 
-def internal_jobs(session: Session) -> list[Job]:
-    return list(session.scalars(select(Job).order_by(Job.created_at.desc())))
+def update_job(session: Session, slug: str, payload: JobUpdate, actor: str) -> Job:
+    job = find_internal_job(session, slug)
+    job.title = payload.title
+    job.location = payload.location
+    job.contract_type = payload.contract_type
+    job.summary = payload.summary
+    job.description = payload.description
+    session.flush()
+    record_audit_event(session, actor, "job.updated", "job", job.id)
+    return job
+
+
+def archive_job(session: Session, slug: str, actor: str) -> Job:
+    job = find_internal_job(session, slug)
+    previous_status = job.status.value
+    job.status = JobStatus.ARCHIVED
+    session.flush()
+    record_audit_event(
+        session,
+        actor,
+        "job.archived",
+        "job",
+        job.id,
+        previous_status,
+        JobStatus.ARCHIVED.value,
+    )
+    return job
+
+
+def find_internal_job(session: Session, slug: str) -> Job:
+    job = session.scalar(select(Job).where(Job.slug == slug))
+    if job is None:
+        raise LookupError("Job not found.")
+    return job
+
+
+def internal_jobs(
+    session: Session,
+    query: str = "",
+    include_archived: bool = False,
+) -> list[Job]:
+    statement = select(Job)
+    if not include_archived:
+        statement = statement.where(Job.status != JobStatus.ARCHIVED)
+    normalized_query = query.strip()
+    if normalized_query:
+        pattern = f"%{normalized_query}%"
+        statement = statement.where(Job.title.ilike(pattern) | Job.location.ilike(pattern))
+    return list(session.scalars(statement.order_by(Job.created_at.desc())))
 
 
 def move_application(

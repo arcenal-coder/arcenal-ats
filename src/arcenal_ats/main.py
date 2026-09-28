@@ -35,6 +35,7 @@ from arcenal_ats.schemas import (
     DocumentAccepted,
     InternalCandidate,
     JobCreate,
+    JobUpdate,
     PipelineMove,
     PublicApplicationCreate,
     PublicJob,
@@ -45,6 +46,7 @@ from arcenal_ats.services import (
     application_detail,
     application_candidate_id,
     application_overviews,
+    archive_job,
     create_draft_job,
     internal_jobs,
     move_application,
@@ -54,6 +56,7 @@ from arcenal_ats.services import (
     published_job,
     record_audit_event,
     register_document,
+    update_job,
     search_talent_pool,
     talent_pool_candidates,
 )
@@ -171,11 +174,24 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/interne/offres", response_class=HTMLResponse, tags=["internal"])
     def internal_jobs_page(
         request: Request,
+        query: str = "",
+        archived: bool = False,
         _: str = Depends(require_yunohost_user),
         session: Session = Depends(get_session),
     ) -> str:
-        jobs = internal_jobs(session)
-        values = [(job.slug, job.title, job.location, job.status.value) for job in jobs]
+        jobs = internal_jobs(session, query, archived)
+        values = [
+            (
+                job.slug,
+                job.title,
+                job.location,
+                job.contract_type,
+                job.summary,
+                job.description,
+                job.status.value,
+            )
+            for job in jobs
+        ]
         return render_internal_jobs_page(values, request.app.state.public_base_path)
 
     @app.post("/interne/offres", tags=["internal"])
@@ -203,6 +219,32 @@ def register_routes(app: FastAPI) -> None:
         session: Session = Depends(get_session),
     ) -> RedirectResponse:
         publish_job(session, job_slug, user)
+        return internal_redirect(request, "/interne/offres")
+
+    @app.post("/interne/offres/{job_slug}/modifier", tags=["internal"])
+    def update_internal_job(
+        job_slug: str,
+        request: Request,
+        user: str = Depends(require_yunohost_user),
+        title: str = Form(...),
+        location: str = Form(...),
+        contract_type: str = Form(...),
+        summary: str = Form(...),
+        description: str = Form(...),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        payload = internal_job_update_payload(title, location, contract_type, summary, description)
+        update_job(session, job_slug, payload, user)
+        return internal_redirect(request, "/interne/offres")
+
+    @app.post("/interne/offres/{job_slug}/archiver", tags=["internal"])
+    def archive_internal_job(
+        job_slug: str,
+        request: Request,
+        user: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        archive_job(session, job_slug, user)
         return internal_redirect(request, "/interne/offres")
 
     @app.get("/interne/candidatures", response_class=HTMLResponse, tags=["internal"])
@@ -525,6 +567,25 @@ def internal_job_payload(
     try:
         return JobCreate(
             slug=slug,
+            title=title,
+            location=location,
+            contract_type=contract_type,
+            summary=summary,
+            description=description,
+        )
+    except ValidationError as error:
+        raise HTTPException(status_code=422, detail=error.errors()) from error
+
+
+def internal_job_update_payload(
+    title: str,
+    location: str,
+    contract_type: str,
+    summary: str,
+    description: str,
+) -> JobUpdate:
+    try:
+        return JobUpdate(
             title=title,
             location=location,
             contract_type=contract_type,

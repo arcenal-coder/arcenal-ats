@@ -153,19 +153,23 @@ def internal_dashboard_page(
 
 
 def internal_jobs_page(
-    jobs: list[tuple[str, str, str, str]],
+    jobs: list[tuple[str, str, str, str, str, str, str]],
     base_path: str,
 ) -> str:
-    rows = "".join(internal_job_row(job, base_path) for job in jobs)
+    rows = "".join(internal_job_card(job, base_path) for job in jobs)
     content = (
         "<p class='arc-kicker'>Offres</p><h1>Offres d'emploi</h1>"
+        f"<form class='arc-inline-form' action='{base_path}/interne/offres' method='get'>"
+        "<label>Rechercher une offre<input name='query' type='search'></label>"
+        "<label class='arc-consent'><input name='archived' value='true' type='checkbox'>"
+        "Inclure les archives</label><button class='arc-small-button' type='submit'>Filtrer</button></form>"
         f"<form class='arc-form' action='{base_path}/interne/offres' method='post'>"
         "<label>Identifiant URL<input name='slug' required pattern='[a-z0-9-]+'></label>"
         "<label>Intitulé<input name='title' required></label><label>Localisation<input name='location' required></label>"
         "<label>Contrat<input name='contract_type' required></label><label>Résumé<textarea name='summary' required></textarea></label>"
         "<label>Description<textarea name='description' required></textarea></label>"
         "<button class='arc-button' type='submit'>Créer le brouillon</button></form>"
-        f"<table class='arc-table'><thead><tr><th>Offre</th><th>Statut</th><th>Action</th></tr></thead><tbody>{rows}</tbody></table>"
+        f"<section class='arc-list'>{rows}</section>"
     )
     return internal_document("Offres", content, base_path)
 
@@ -231,15 +235,50 @@ def stat_card(label: str, value: int) -> str:
     return f"<article class='arc-stat'><strong>{value}</strong><span>{escape(label)}</span></article>"
 
 
-def internal_job_row(job: tuple[str, str, str, str], base_path: str) -> str:
-    slug, title, location, status = job
-    action = ""
+def internal_job_card(
+    job: tuple[str, str, str, str, str, str, str],
+    base_path: str,
+) -> str:
+    slug, title, location, contract_type, summary, description, status = job
+    actions = ""
     if status == "draft":
-        action = (
+        actions = (
             f"<form class='arc-inline-form' action='{base_path}/interne/offres/{quote(slug)}/publier' method='post'>"
             "<button class='arc-small-button' type='submit'>Publier</button></form>"
         )
-    return f"<tr><td>{escape(title)}<br><span class='arc-meta'>{escape(location)}</span></td><td>{escape(status)}</td><td>{action}</td></tr>"
+    if status != "archived":
+        actions += (
+            f"<form class='arc-inline-form' action='{base_path}/interne/offres/{quote(slug)}/archiver' method='post'>"
+            "<button class='arc-small-button' type='submit'>Archiver</button></form>"
+        )
+    return (
+        "<article class='arc-card'>"
+        f"<p class='arc-kicker'>{escape(status)}</p><h2>{escape(title)}</h2>"
+        f"<p class='arc-meta'>{escape(location)} · {escape(contract_type)}</p>"
+        f"<p>{escape(summary)}</p><details><summary>Modifier</summary>"
+        f"{job_update_form(slug, title, location, contract_type, summary, description, base_path)}</details>"
+        f"<div class='arc-nav'>{actions}</div></article>"
+    )
+
+
+def job_update_form(
+    slug: str,
+    title: str,
+    location: str,
+    contract_type: str,
+    summary: str,
+    description: str,
+    base_path: str,
+) -> str:
+    return (
+        f"<form class='arc-form' action='{base_path}/interne/offres/{quote(slug)}/modifier' method='post'>"
+        f"<label>Intitulé<input name='title' value='{escape(title, quote=True)}' required></label>"
+        f"<label>Localisation<input name='location' value='{escape(location, quote=True)}' required></label>"
+        f"<label>Contrat<input name='contract_type' value='{escape(contract_type, quote=True)}' required></label>"
+        f"<label>Résumé<textarea name='summary' required>{escape(summary)}</textarea></label>"
+        f"<label>Description<textarea name='description' required>{escape(description)}</textarea></label>"
+        "<button class='arc-small-button' type='submit'>Enregistrer</button></form>"
+    )
 
 
 def internal_application_row(
