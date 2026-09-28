@@ -40,6 +40,10 @@ a:hover { color: var(--arc-amber); }
 .arc-nav { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0 2rem; }
 .arc-stat-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
 .arc-stat { background: var(--arc-surface); border-radius: .75rem; padding: 1rem; }
+.arc-kanban { display: grid; gap: 1rem; grid-template-columns: repeat(7, minmax(14rem, 1fr)); overflow-x: auto; padding-bottom: 1rem; }
+.arc-column { background: #151525; border-top: 3px solid var(--arc-bronze); min-height: 18rem; padding: .8rem; }
+.arc-column h2 { font-size: .95rem; margin-top: 0; }
+.arc-candidate-card { background: var(--arc-surface); border: 1px solid #3a3652; border-radius: .5rem; margin: .65rem 0; padding: .75rem; }
 .arc-stat strong { color: var(--arc-gold); display: block; font-size: 2rem; }
 .arc-table { border-collapse: collapse; margin-top: 1.5rem; width: 100%; }
 .arc-table td, .arc-table th { border-bottom: 1px solid #3a3652; padding: .8rem .5rem; text-align: left; vertical-align: top; }
@@ -170,13 +174,42 @@ def internal_applications_page(
     applications: list[tuple[str, str, str, str, str, str | None, str | None]],
     base_path: str,
 ) -> str:
-    rows = "".join(internal_application_row(application, base_path) for application in applications)
+    columns = "".join(pipeline_column(stage, applications, base_path) for stage in pipeline_stages())
     content = (
         "<p class='arc-kicker'>Candidatures</p><h1>Pipeline de recrutement</h1>"
-        "<table class='arc-table'><thead><tr><th>Candidate ou candidat</th><th>Offre</th>"
-        f"<th>Étape</th><th>Suivi</th></tr></thead><tbody>{rows}</tbody></table>"
+        f"<section class='arc-kanban'>{columns}</section>"
     )
     return internal_document("Candidatures", content, base_path)
+
+
+def internal_candidate_page(
+    application: tuple[str, str, str, str, str, str | None, str | None],
+    documents: list[tuple[str, str, str, int]],
+    history: list[tuple[str, str, str | None, str | None, str]],
+    base_path: str,
+) -> str:
+    identifier, name, email, job_title, stage, letter, latest_note = application
+    document_rows = "".join(
+        f"<li><a href='{base_path}/api/v1/internal/documents/{quote(document_id)}'>{escape(filename)}</a> "
+        f"<span class='arc-meta'>{escape(media_type)} · {byte_size} octets</span></li>"
+        for document_id, filename, media_type, byte_size in documents
+    ) or "<li>Aucun document</li>"
+    history_rows = "".join(
+        f"<li>{escape(occurred_at)} · {escape(actor)} · {escape(action)}"
+        f"{history_change(previous, current)}</li>"
+        for action, actor, previous, current, occurred_at in history
+    ) or "<li>Aucun événement</li>"
+    content = (
+        "<p class='arc-kicker'>Dossier candidat</p>"
+        f"<h1>{escape(name)}</h1><p class='arc-meta'>{escape(email)} · {escape(job_title)}</p>"
+        f"<section class='arc-job'><h2>Étape : {escape(stage_label(stage))}</h2>"
+        f"<p>{escape(letter or 'Aucun message de motivation')}</p>"
+        f"<p class='arc-meta'>Dernière note : {escape(latest_note or 'Aucune note')}</p></section>"
+        f"<section><h2>Documents</h2><ul class='arc-list'>{document_rows}</ul></section>"
+        f"<section><h2>Historique</h2><ul class='arc-list'>{history_rows}</ul></section>"
+        f"<p><a class='arc-small-button' href='{base_path}/interne/candidatures'>Retour au pipeline</a></p>"
+    )
+    return internal_document("Dossier candidat", content, base_path)
 
 
 def internal_talent_pool_page(
@@ -223,6 +256,55 @@ def internal_application_row(
         f"<select name='stage'>{options}</select><textarea name='note' placeholder='Ajouter une note'></textarea>"
         f"<button class='arc-small-button' type='submit'>Enregistrer</button></form></td><td>{letter}<br><span class='arc-meta'>{note}</span></td></tr>"
     )
+
+
+def pipeline_stages() -> tuple[tuple[str, str], ...]:
+    return (
+        ("new", "Reçue"), ("qualifying", "À qualifier"), ("interview", "Entretien"),
+        ("offer", "À décider"), ("hired", "Acceptée"), ("rejected", "Refusée"),
+        ("talent_pool", "Vivier"),
+    )
+
+
+def pipeline_column(
+    stage: tuple[str, str],
+    applications: list[tuple[str, str, str, str, str, str | None, str | None]],
+    base_path: str,
+) -> str:
+    stage_value, label = stage
+    cards = "".join(
+        candidate_card(application, base_path)
+        for application in applications
+        if application[4] == stage_value
+    ) or "<p class='arc-meta'>Aucune candidature</p>"
+    return f"<section class='arc-column'><h2>{escape(label)}</h2>{cards}</section>"
+
+
+def candidate_card(
+    application: tuple[str, str, str, str, str, str | None, str | None],
+    base_path: str,
+) -> str:
+    identifier, name, email, job_title, stage, _, latest_note = application
+    options = pipeline_options(stage)
+    return (
+        "<article class='arc-candidate-card'>"
+        f"<a href='{base_path}/interne/candidatures/{quote(identifier)}'><strong>{escape(name)}</strong></a>"
+        f"<p class='arc-meta'>{escape(job_title)} · {escape(email)}</p>"
+        f"<p class='arc-meta'>{escape(latest_note or 'Aucune note')}</p>"
+        f"<form class='arc-inline-form' action='{base_path}/interne/candidatures/{quote(identifier)}/pipeline' method='post'>"
+        f"<select name='stage'>{options}</select><textarea name='note' placeholder='Ajouter une note'></textarea>"
+        "<button class='arc-small-button' type='submit'>Mettre à jour</button></form></article>"
+    )
+
+
+def stage_label(stage: str) -> str:
+    return dict(pipeline_stages()).get(stage, stage)
+
+
+def history_change(previous: str | None, current: str | None) -> str:
+    if previous is None and current is None:
+        return ""
+    return f" : {escape(previous or '—')} → {escape(current or '—')}"
 
 
 def pipeline_options(current_stage: str) -> str:

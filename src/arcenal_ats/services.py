@@ -72,6 +72,30 @@ class ApplicationOverview:
     latest_note: str | None
 
 
+@dataclass(frozen=True)
+class CandidateDocumentOverview:
+    document_id: UUID
+    original_filename: str
+    media_type: str
+    byte_size: int
+
+
+@dataclass(frozen=True)
+class ApplicationHistoryItem:
+    action: str
+    actor: str
+    previous_value: str | None
+    new_value: str | None
+    occurred_at: datetime
+
+
+@dataclass(frozen=True)
+class ApplicationDetail:
+    overview: ApplicationOverview
+    documents: tuple[CandidateDocumentOverview, ...]
+    history: tuple[ApplicationHistoryItem, ...]
+
+
 def published_jobs(session: Session) -> list[Job]:
     statement = select(Job).where(Job.status == JobStatus.PUBLISHED).order_by(
         Job.created_at.desc()
@@ -123,9 +147,18 @@ def move_application(
     application = session.get(Application, application_id)
     if application is None:
         raise LookupError("Application not found.")
+    previous_stage = application.stage.value
     application.stage = stage
     session.flush()
-    record_audit_event(session, actor, "application.stage_changed", "application", application.id)
+    record_audit_event(
+        session,
+        actor,
+        "application.stage_changed",
+        "application",
+        application.id,
+        previous_stage,
+        stage.value,
+    )
     return application
 
 
@@ -162,6 +195,64 @@ def application_overview(
     )
 
 
+def application_detail(session: Session, application_id: UUID) -> ApplicationDetail:
+    row = session.execute(
+        select(Application, Candidate, Job)
+        .join(Candidate, Application.candidate_id == Candidate.id)
+        .outerjoin(Job, Application.job_id == Job.id)
+        .where(Application.id == application_id)
+    ).one_or_none()
+    if row is None:
+        raise LookupError("Application not found.")
+    application, candidate, job = row
+    return ApplicationDetail(
+        application_overview(session, application, candidate, job),
+        candidate_documents(session, candidate.id),
+        application_history(session, application.id),
+    )
+
+
+def candidate_documents(
+    session: Session,
+    candidate_id: UUID,
+) -> tuple[CandidateDocumentOverview, ...]:
+    statement = (
+        select(Document)
+        .where(Document.candidate_id == candidate_id)
+        .order_by(Document.created_at.desc())
+    )
+    return tuple(
+        CandidateDocumentOverview(
+            document.id,
+            document.original_filename,
+            document.media_type,
+            document.byte_size,
+        )
+        for document in session.scalars(statement)
+    )
+
+
+def application_history(
+    session: Session,
+    application_id: UUID,
+) -> tuple[ApplicationHistoryItem, ...]:
+    statement = (
+        select(AuditEvent)
+        .where(AuditEvent.subject_type == "application", AuditEvent.subject_id == application_id)
+        .order_by(AuditEvent.occurred_at.desc())
+    )
+    return tuple(
+        ApplicationHistoryItem(
+            event.action,
+            event.actor,
+            event.previous_value,
+            event.new_value,
+            event.occurred_at,
+        )
+        for event in session.scalars(statement)
+    )
+
+
 def add_application_note(
     session: Session,
     application_id: UUID,
@@ -186,6 +277,8 @@ def record_audit_event(
     action: str,
     subject_type: str,
     subject_id: UUID,
+    previous_value: str | None = None,
+    new_value: str | None = None,
 ) -> None:
     session.add(
         AuditEvent(
@@ -193,6 +286,8 @@ def record_audit_event(
             action=action,
             subject_type=subject_type,
             subject_id=subject_id,
+            previous_value=previous_value,
+            new_value=new_value,
         )
     )
 

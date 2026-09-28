@@ -18,6 +18,7 @@ from arcenal_ats.database import create_session_factory, session_scope
 from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY, DomainValidationError, PipelineStage
 from arcenal_ats.presentation import (
     internal_applications_page as render_internal_applications_page,
+    internal_candidate_page as render_internal_candidate_page,
     internal_dashboard_page as render_internal_dashboard_page,
     internal_jobs_page as render_internal_jobs_page,
     internal_talent_pool_page as render_internal_talent_pool_page,
@@ -41,6 +42,7 @@ from arcenal_ats.schemas import (
 from arcenal_ats.services import (
     PublicApplicationService,
     add_application_note,
+    application_detail,
     application_candidate_id,
     application_overviews,
     create_draft_job,
@@ -239,6 +241,52 @@ def register_routes(app: FastAPI) -> None:
         except (LookupError, ValueError) as error:
             raise HTTPException(status_code=422, detail=str(error)) from error
         return internal_redirect(request, "/interne/candidatures")
+
+    @app.get(
+        "/interne/candidatures/{application_id}",
+        response_class=HTMLResponse,
+        tags=["internal"],
+    )
+    def internal_candidate_page(
+        application_id: UUID,
+        request: Request,
+        _: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> str:
+        try:
+            detail = application_detail(session, application_id)
+        except LookupError as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        overview = detail.overview
+        application = (
+            str(overview.application_id),
+            overview.candidate_name,
+            overview.candidate_email,
+            overview.job_title,
+            overview.stage.value,
+            overview.cover_letter,
+            overview.latest_note,
+        )
+        documents = [
+            (str(item.document_id), item.original_filename, item.media_type, item.byte_size)
+            for item in detail.documents
+        ]
+        history = [
+            (
+                item.action,
+                item.actor,
+                item.previous_value,
+                item.new_value,
+                item.occurred_at.isoformat(),
+            )
+            for item in detail.history
+        ]
+        return render_internal_candidate_page(
+            application,
+            documents,
+            history,
+            request.app.state.public_base_path,
+        )
 
     @app.get("/interne/vivier", response_class=HTMLResponse, tags=["internal"])
     def internal_talent_pool_page(
