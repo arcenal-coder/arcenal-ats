@@ -333,10 +333,11 @@ def register_routes(app: FastAPI) -> None:
     @app.get("/interne/vivier", response_class=HTMLResponse, tags=["internal"])
     def internal_talent_pool_page(
         request: Request,
+        query: str = "",
         _: str = Depends(require_yunohost_user),
         session: Session = Depends(get_session),
     ) -> str:
-        candidates = talent_pool_candidates(session)
+        candidates = talent_pool_candidates(session, query)
         values = [
             (f"{item.first_name} {item.last_name}", item.email, item.location or "—")
             for item in candidates

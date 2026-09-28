@@ -226,6 +226,10 @@ def internal_talent_pool_page(
     )
     content = (
         "<p class='arc-kicker'>Vivier</p><h1>Talents</h1>"
+        f"<form class='arc-inline-form' action='{base_path}/interne/vivier' method='get'>"
+        "<label>Rechercher par nom, e-mail, compétence ou localisation"
+        "<input name='query' type='search' required></label>"
+        "<button class='arc-small-button' type='submit'>Rechercher</button></form>"
         f"<ul class='arc-list'>{rows}</ul>"
     )
     return internal_document("Vivier", content, base_path)

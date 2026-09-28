@@ -5,6 +5,7 @@ import unittest
 from arcenal_ats.presentation import (
     careers_page,
     internal_candidate_page,
+    internal_talent_pool_page,
     internal_applications_page,
     internal_jobs_page,
     job_page,
@@ -94,6 +95,16 @@ class PresentationTest(unittest.TestCase):
         self.assertIn("/ats/api/v1/internal/documents/doc", page)
         self.assertIn("new → qualifying", page)
         self.assertIn("Retour au pipeline", page)
+
+    def test_renders_a_searchable_talent_pool_under_the_installation_path(self) -> None:
+        page = internal_talent_pool_page(
+            [("Ada Lovelace", "ada@example.test", "Paris")],
+            "/ats",
+        )
+
+        self.assertIn("/ats/interne/vivier", page)
+        self.assertIn("name='query'", page)
+        self.assertIn("Ada Lovelace", page)
 
     def test_renders_a_careers_link_to_a_job(self) -> None:
         page = careers_page([("python-developer", "Python Developer", "Paris")], "/ats")

@@ -387,13 +387,33 @@ def record_audit_event(
 def search_talent_pool(session: Session, query: str) -> list[Candidate]:
     text = f"%{query.strip()}%"
     statement = select(Candidate).where(
-        Candidate.skills.ilike(text) | Candidate.location.ilike(text)
+        Candidate.first_name.ilike(text)
+        | Candidate.last_name.ilike(text)
+        | Candidate.email.ilike(text)
+        | Candidate.skills.ilike(text)
+        | Candidate.location.ilike(text)
     )
     return list(session.scalars(statement))
 
 
-def talent_pool_candidates(session: Session) -> list[Candidate]:
-    return list(session.scalars(select(Candidate).order_by(Candidate.created_at.desc())))
+def talent_pool_candidates(session: Session, query: str = "") -> list[Candidate]:
+    statement = (
+        select(Candidate)
+        .join(Application, Application.candidate_id == Candidate.id)
+        .where(Application.stage == PipelineStage.TALENT_POOL)
+        .distinct()
+    )
+    normalized_query = query.strip()
+    if normalized_query:
+        pattern = f"%{normalized_query}%"
+        statement = statement.where(
+            Candidate.first_name.ilike(pattern)
+            | Candidate.last_name.ilike(pattern)
+            | Candidate.email.ilike(pattern)
+            | Candidate.skills.ilike(pattern)
+            | Candidate.location.ilike(pattern)
+        )
+    return list(session.scalars(statement.order_by(Candidate.created_at.desc())))
 
 
 def register_document(
