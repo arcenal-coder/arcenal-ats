@@ -81,11 +81,12 @@ class YunoHostInstallScriptTest(unittest.TestCase):
         nginx_config: str = (PROJECT_ROOT / "conf" / "nginx.conf").read_text()
 
         self.assertIn("location = __PATH__ {", nginx_config)
-        self.assertEqual(nginx_config.count("auth_request off;"), 3)
         self.assertIn("return 302 __PATH__/recrutement;", nginx_config)
-        self.assertIn("public-api/v1(?:/|$)", nginx_config)
-        self.assertIn("public(?:/|$)", nginx_config)
-        self.assertIn("auth_request off;", nginx_config)
+        self.assertIn("location __PATH__/recrutement {", nginx_config)
+        self.assertIn("proxy_pass http://127.0.0.1:__PORT__/recrutement;", nginx_config)
+        self.assertIn("location __PATH__/public-api/v1 {", nginx_config)
+        self.assertIn("location __PATH__/public {", nginx_config)
+        self.assertNotIn("$request_uri", nginx_config)
 
     def test_upgrade_refreshes_runtime_and_proxy_configuration(self) -> None:
         upgrade_script: str = (PROJECT_ROOT / "scripts" / "upgrade").read_text()

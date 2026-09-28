@@ -1,6 +1,6 @@
 # ARCenal ATS — état du projet
 
-- Date : 2026-09-25
+- Date : 2026-09-28
 - Branche active : `main`, paquet YunoHost publié aussi sur `stable`
 - Objectif : socle V1 Python/FastAPI/PostgreSQL autonome, avec portail carrière public et paquet YunoHost.
 
@@ -24,7 +24,7 @@ Le dépôt distant était vide à l’exception de la licence. Les projets `arc-
 2. `mypy src`
 3. `python -m unittest discover -s tests -v` (sans dépendance externe) puis `pytest` dans l’environnement de développement.
 
-## Correctif d’installation en cours
+## Correctifs d’installation et parcours public
 
 Le journal YunoHost a confirmé que `ynh_psql_setup_db` stocke le mot de passe PostgreSQL dans le réglage `psqlpwd`. Le script d’installation le recharge désormais avant de lancer la migration et de rendre le service systemd, qui en a besoin pour remplacer `__PSQLPWD__`. Un test de régression vérifie cet ordre.
 
@@ -41,6 +41,14 @@ Les scripts YunoHost chargent `_common.sh` depuis leur propre dossier. Les opér
 Le helper `ynh_backup` diffère entre les versions de YunoHost. Les arguments positionnels (source puis destination relative) sont compatibles avec l'instance YunoHost 12 observée ; le paquet les utilise pour que la sauvegarde de sécurité précède correctement une mise à jour.
 
 L'instance publiée ne déployait pas les fichiers applicatifs ni le proxy Nginx lors d'une mise à jour : son ancien script se limitait à redémarrer le service. Le paquet applique désormais le code, les migrations, l'unité systemd et la configuration Nginx pendant les mises à jour. La racine `/ats` redirige vers le portail public `/ats/recrutement`; les pages, API publique et ressources CSS/JS ne passent pas par SSOwat.
+
+La configuration Nginx est maintenant fondée sur des préfixes explicites : elle retire `/ats` avant le proxy vers FastAPI tout en conservant ce préfixe dans tous les liens, formulaires, ressources et le widget. Cela corrige les liens racine et les 404 observés sur le portail publié.
+
+Le parcours public réel comprend une candidature à une offre et une candidature spontanée, le contrôle du consentement, du CV (format et taille), l'écriture hors zone publique et une confirmation après dépôt. La dépendance `email-validator` est déclarée dans le paquet pour rendre ce contrôle disponible dès une installation propre, sans intervention manuelle.
+
+## Prochaine unité fonctionnelle
+
+Construire les écrans internes et les services correspondants pour créer/publier une offre, consulter les candidatures reçues, déplacer chaque candidature dans le pipeline V1 et ajouter une note historisée.
 
 ## Limites connues
 

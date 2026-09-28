@@ -11,6 +11,7 @@ requires-python = ">=3.11"
 license = { text = "AGPL-3.0-or-later" }
 dependencies = [
   "alembic>=1.13,<2",
+  "email-validator>=2.2,<3",
   "fastapi>=0.115,<1",
   "python-multipart>=0.0.12,<1",
   "psycopg[binary]>=3.2,<4",

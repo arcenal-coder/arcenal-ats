@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import unittest
 
-from arcenal_ats.presentation import careers_page, job_page, stylesheet
+from arcenal_ats.presentation import (
+    careers_page,
+    job_page,
+    spontaneous_application_page,
+    stylesheet,
+)
 
 
 class PresentationTest(unittest.TestCase):
@@ -13,10 +18,25 @@ class PresentationTest(unittest.TestCase):
         self.assertIn("#1a1a2e", css)
 
     def test_escapes_job_data_in_the_public_page(self) -> None:
-        page = job_page("<script>", "Paris", "<b>description</b>")
+        page = job_page("python", "<script>", "Paris", "<b>description</b>", "/ats")
         self.assertNotIn("<script>", page)
         self.assertIn("&lt;b&gt;description&lt;/b&gt;", page)
 
+    def test_renders_a_postable_application_form_under_the_installation_path(self) -> None:
+        page = job_page("python-developer", "Python Developer", "Paris", "Description", "/ats")
+
+        self.assertIn("method='post'", page)
+        self.assertIn("enctype='multipart/form-data'", page)
+        self.assertIn("/ats/recrutement/offres/python-developer/candidater", page)
+        self.assertIn("name='resume'", page)
+
+    def test_renders_a_spontaneous_application_form(self) -> None:
+        page = spontaneous_application_page("/ats")
+
+        self.assertIn("/ats/recrutement/candidature-spontanee", page)
+        self.assertIn("politique de confidentialité", page)
+
     def test_renders_a_careers_link_to_a_job(self) -> None:
-        page = careers_page([("python-developer", "Python Developer", "Paris")])
-        self.assertIn("/recrutement/offres/python-developer", page)
+        page = careers_page([("python-developer", "Python Developer", "Paris")], "/ats")
+        self.assertIn("/ats/recrutement/offres/python-developer", page)
+        self.assertIn("/ats/public/arcenal-ats.css", page)

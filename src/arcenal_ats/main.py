@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Generator
+from dataclasses import dataclass
+from urllib.parse import urlparse
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from pydantic import ValidationError
 from sqlalchemy.orm import Session, sessionmaker
 
 from arcenal_ats.config import default_settings
@@ -15,7 +18,10 @@ from arcenal_ats.database import create_session_factory, session_scope
 from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY, DomainValidationError, PipelineStage
 from arcenal_ats.presentation import (
     careers_page as render_careers_page,
+    application_confirmation_page as render_application_confirmation_page,
     job_page as render_job_page,
+    privacy_page as render_privacy_page,
+    spontaneous_application_page as render_spontaneous_application_page,
     stylesheet,
 )
 from arcenal_ats.schemas import (
@@ -41,6 +47,17 @@ from arcenal_ats.services import (
 from arcenal_ats.storage import PrivateDocumentStore
 
 
+@dataclass(frozen=True)
+class CareersApplicationForm:
+    first_name: str
+    last_name: str
+    email: str
+    location: str
+    cover_letter: str
+    consent: bool
+    resume: UploadFile
+
+
 def create_app(factory: sessionmaker[Session] | None = None) -> FastAPI:
     app = FastAPI(title="ARCenal ATS", version="0.1.0")
     settings = default_settings()
@@ -49,6 +66,7 @@ def create_app(factory: sessionmaker[Session] | None = None) -> FastAPI:
         settings.document_directory,
         DEFAULT_UPLOAD_POLICY,
     )
+    app.state.public_base_path = urlparse(settings.public_base_url).path.rstrip("/")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.allowed_widget_origins),
@@ -77,18 +95,69 @@ def register_routes(app: FastAPI) -> None:
         return {"status": "ok"}
 
     @app.get("/recrutement", response_class=HTMLResponse, tags=["public"])
-    def careers_page(session: Session = Depends(get_session)) -> str:
+    def careers_page(request: Request, session: Session = Depends(get_session)) -> str:
         jobs = published_jobs(session)
         job_cards = [(job.slug, job.title, job.location) for job in jobs]
-        return render_careers_page(job_cards)
+        return render_careers_page(job_cards, request.app.state.public_base_path)
 
     @app.get("/recrutement/offres/{job_slug}", response_class=HTMLResponse, tags=["public"])
-    def job_page(job_slug: str, session: Session = Depends(get_session)) -> str:
+    def job_page(
+        job_slug: str,
+        request: Request,
+        session: Session = Depends(get_session),
+    ) -> str:
         try:
             job = published_job(session, job_slug)
         except LookupError as error:
             raise HTTPException(status_code=404, detail=str(error)) from error
-        return render_job_page(job.title, job.location, job.description)
+        return render_job_page(
+            job.slug,
+            job.title,
+            job.location,
+            job.description,
+            request.app.state.public_base_path,
+        )
+
+    @app.get(
+        "/recrutement/candidature-spontanee",
+        response_class=HTMLResponse,
+        tags=["public"],
+    )
+    def spontaneous_application_page(request: Request) -> str:
+        return render_spontaneous_application_page(request.app.state.public_base_path)
+
+    @app.get(
+        "/recrutement/candidature-envoyee",
+        response_class=HTMLResponse,
+        tags=["public"],
+    )
+    def application_confirmation_page(request: Request) -> str:
+        return render_application_confirmation_page(request.app.state.public_base_path)
+
+    @app.get(
+        "/recrutement/confidentialite",
+        response_class=HTMLResponse,
+        tags=["public"],
+    )
+    def privacy_page(request: Request) -> str:
+        return render_privacy_page(request.app.state.public_base_path)
+
+    @app.post("/recrutement/offres/{job_slug}/candidater", tags=["public"])
+    async def submit_job_application(
+        job_slug: str,
+        request: Request,
+        form: CareersApplicationForm = Depends(careers_application_form),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        return await submit_careers_application(request, session, job_slug, form)
+
+    @app.post("/recrutement/candidature-spontanee", tags=["public"])
+    async def submit_spontaneous_application(
+        request: Request,
+        form: CareersApplicationForm = Depends(careers_application_form),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        return await submit_careers_application(request, session, None, form)
 
     @app.get("/public/arcenal-ats.css", tags=["public"])
     def public_stylesheet() -> Response:
@@ -246,6 +315,68 @@ def submit_public_application(
     return ApplicationAccepted(application_id=application.id, message="Application received.")
 
 
+def public_application_payload(
+    first_name: str,
+    last_name: str,
+    email: str,
+    location: str,
+    cover_letter: str,
+    consent: bool,
+) -> PublicApplicationCreate:
+    try:
+        return PublicApplicationCreate(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            location=location or None,
+            cover_letter=cover_letter or None,
+            consent=consent,
+        )
+    except ValidationError as error:
+        raise HTTPException(status_code=422, detail=error.errors()) from error
+
+
+def careers_application_form(
+    first_name: str = Form(...),
+    last_name: str = Form(...),
+    email: str = Form(...),
+    location: str = Form(""),
+    cover_letter: str = Form(""),
+    consent: bool = Form(...),
+    resume: UploadFile = File(...),
+) -> CareersApplicationForm:
+    return CareersApplicationForm(
+        first_name,
+        last_name,
+        email,
+        location,
+        cover_letter,
+        consent,
+        resume,
+    )
+
+
+async def submit_careers_application(
+    request: Request,
+    session: Session,
+    job_slug: str | None,
+    form: CareersApplicationForm,
+) -> RedirectResponse:
+    payload = public_application_payload(
+        form.first_name,
+        form.last_name,
+        form.email,
+        form.location,
+        form.cover_letter,
+        form.consent,
+    )
+    accepted = submit_public_application(session, payload, job_slug)
+    content = await form.resume.read()
+    save_document(request, session, accepted.application_id, form.resume, content)
+    base_path: str = request.app.state.public_base_path
+    return RedirectResponse(f"{base_path}/recrutement/candidature-envoyee", status_code=303)
+
+
 def save_document(
     request: Request,
     session: Session,
@@ -280,7 +411,10 @@ def widget_script() -> str:
   const script = document.currentScript;
   const target = document.querySelector(script.dataset.target || '#arcenal-jobs');
   if (!target) return;
-  const base = new URL(script.src).origin;
+  const source = new URL(script.src);
+  const publicScriptPath = '/public/arcenal-jobs.js';
+  const installationPath = source.pathname.slice(0, -publicScriptPath.length);
+  const base = `${source.origin}${installationPath}`;
   fetch(`${base}/public-api/v1/jobs`).then(response => response.json()).then(jobs => {
     jobs.forEach(job => {
       const link = document.createElement('a');
