@@ -24,6 +24,11 @@ class PipelineStage(str, Enum):
     TALENT_POOL = "talent_pool"
 
 
+class UserRole(str, Enum):
+    ADMINISTRATOR = "administrator"
+    RECRUITER = "recruiter"
+
+
 class DomainValidationError(ValueError):
     """Raised when a request violates an ATS business invariant."""
 

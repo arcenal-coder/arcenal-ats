@@ -9,8 +9,17 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from arcenal_ats.domain import JobStatus, PipelineStage
-from arcenal_ats.models import Application, ApplicationNote, AuditEvent, Candidate, Document, Job
+from arcenal_ats.domain import JobStatus, PipelineStage, UserRole
+from arcenal_ats.models import (
+    Application,
+    ApplicationNote,
+    ApplicationSetting,
+    ApplicationUser,
+    AuditEvent,
+    Candidate,
+    Document,
+    Job,
+)
 from arcenal_ats.schemas import JobCreate, JobUpdate, PublicApplicationCreate
 
 
@@ -94,6 +103,42 @@ class ApplicationDetail:
     overview: ApplicationOverview
     documents: tuple[CandidateDocumentOverview, ...]
     history: tuple[ApplicationHistoryItem, ...]
+
+
+def application_user(session: Session, username: str) -> ApplicationUser:
+    user = session.scalar(select(ApplicationUser).where(ApplicationUser.username == username))
+    if user is not None:
+        return user
+    user = ApplicationUser(username=username, role=UserRole.RECRUITER)
+    session.add(user)
+    session.flush()
+    return user
+
+
+def update_application_user_role(
+    session: Session,
+    username: str,
+    role: UserRole,
+) -> ApplicationUser:
+    user = application_user(session, username)
+    user.role = role
+    session.flush()
+    return user
+
+
+def application_settings(session: Session) -> dict[str, str]:
+    return {item.key: item.value for item in session.scalars(select(ApplicationSetting))}
+
+
+def set_application_setting(session: Session, key: str, value: str) -> ApplicationSetting:
+    setting = session.get(ApplicationSetting, key)
+    if setting is None:
+        setting = ApplicationSetting(key=key, value=value)
+        session.add(setting)
+    else:
+        setting.value = value
+    session.flush()
+    return setting
 
 
 def published_jobs(session: Session) -> list[Job]:

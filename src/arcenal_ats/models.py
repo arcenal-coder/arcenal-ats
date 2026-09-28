@@ -9,7 +9,7 @@ from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from arcenal_ats.database import Base
-from arcenal_ats.domain import JobStatus, PipelineStage
+from arcenal_ats.domain import JobStatus, PipelineStage, UserRole
 
 
 class TimestampedEntity:
@@ -69,6 +69,19 @@ class ApplicationNote(TimestampedEntity, Base):
     application_id: Mapped[UUID] = mapped_column(ForeignKey("applications.id"), index=True)
     author: Mapped[str] = mapped_column(String(255))
     content: Mapped[str] = mapped_column(Text)
+
+
+class ApplicationUser(TimestampedEntity, Base):
+    __tablename__ = "application_users"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    username: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.RECRUITER)
+
+
+class ApplicationSetting(TimestampedEntity, Base):
+    __tablename__ = "application_settings"
+    key: Mapped[str] = mapped_column(String(120), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)
 
 
 class AuditEvent(Base):
