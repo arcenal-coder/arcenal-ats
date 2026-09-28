@@ -6,7 +6,7 @@ import hashlib
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from arcenal_ats.domain import UploadPolicy
+from arcenal_ats.domain import DomainValidationError, UploadPolicy
 
 
 class PrivateDocumentStore:
@@ -23,6 +23,19 @@ class PrivateDocumentStore:
         target.write_bytes(content)
         target.chmod(0o640)
         return storage_key
+
+    def load(self, storage_key: str) -> bytes:
+        target = self._document_path(storage_key)
+        if not target.is_file():
+            raise LookupError("The private document was not found.")
+        return target.read_bytes()
+
+    def _document_path(self, storage_key: str) -> Path:
+        root = self._directory.resolve()
+        target = (root / storage_key).resolve()
+        if root not in target.parents:
+            raise DomainValidationError("The document storage key is invalid.")
+        return target
 
     def _storage_key(self, candidate_id: UUID, filename: str, content: bytes) -> str:
         digest = hashlib.sha256(content).hexdigest()[:16]

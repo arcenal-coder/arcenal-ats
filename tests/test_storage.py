@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from uuid import uuid4
 
-from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY
+from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY, DomainValidationError
 from arcenal_ats.storage import PrivateDocumentStore
 
 
@@ -24,3 +24,17 @@ class PrivateDocumentStoreTest(unittest.TestCase):
                 uuid4(), "cv.pdf", "application/pdf", b"pdf"
             )
             self.assertNotEqual(key, "cv.pdf")
+
+    def test_loads_a_saved_private_document(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            store = PrivateDocumentStore(Path(temporary_directory), DEFAULT_UPLOAD_POLICY)
+            key = store.save(uuid4(), "cv.pdf", "application/pdf", b"private document")
+
+            self.assertEqual(store.load(key), b"private document")
+
+    def test_rejects_a_storage_path_traversal(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            store = PrivateDocumentStore(Path(temporary_directory), DEFAULT_UPLOAD_POLICY)
+
+            with self.assertRaises(DomainValidationError):
+                store.load("../../outside.pdf")

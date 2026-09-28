@@ -227,3 +227,10 @@ def application_candidate_id(session: Session, application_id: UUID) -> UUID:
     if application is None:
         raise LookupError("Application not found.")
     return application.candidate_id
+
+
+def private_document(session: Session, document_id: UUID) -> Document:
+    document = session.get(Document, document_id)
+    if document is None:
+        raise LookupError("Document not found.")
+    return document

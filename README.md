@@ -30,7 +30,7 @@ The application requires PostgreSQL. Set an explicit production database URL and
 
 The default public page is `https://your-domain.example/ats/recrutement`. A client website can link to it directly; no API or script is necessary. The supported public API starts at `/public-api/v1`. It never returns candidate or document data. For an external site, add the exact site origin to the CORS allow-list, then embed `/public/arcenal-jobs.js`; the small widget renders published offers only.
 
-After a YunoHost installation, the public path is deliberately unauthenticated while `/interne` remains protected by SSOwat. Recruiters create a draft, publish it, then handle incoming applications through: Reçue, À qualifier, Entretien, À décider, Acceptée, Refusée or Vivier. A CV is always stored in the private document directory; it is never given a public Nginx URL.
+After a YunoHost installation, the public path is deliberately unauthenticated while `/interne` remains protected by SSOwat. Recruiters create a draft, publish it, then handle incoming applications through: Reçue, À qualifier, Entretien, À décider, Acceptée, Refusée or Vivier. A CV is always stored in the private document directory; it is never given a public Nginx URL. Its download endpoint is inside the protected internal API and sends a private, non-cacheable attachment response.
 
 ## Security boundary
 

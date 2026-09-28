@@ -47,6 +47,7 @@ from arcenal_ats.services import (
     internal_jobs,
     move_application,
     publish_job,
+    private_document,
     published_jobs,
     published_job,
     record_audit_event,
@@ -250,6 +251,25 @@ def register_routes(app: FastAPI) -> None:
             for item in candidates
         ]
         return render_internal_talent_pool_page(values, request.app.state.public_base_path)
+
+    @app.get("/api/v1/internal/documents/{document_id}", tags=["internal"])
+    def download_private_document(
+        document_id: UUID,
+        request: Request,
+        _: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> Response:
+        try:
+            document = private_document(session, document_id)
+            store: PrivateDocumentStore = request.app.state.document_store
+            content = store.load(document.storage_key)
+        except (DomainValidationError, LookupError) as error:
+            raise HTTPException(status_code=404, detail=str(error)) from error
+        headers = {
+            "Content-Disposition": f'attachment; filename="{document.original_filename}"',
+            "Cache-Control": "private, no-store",
+        }
+        return Response(content=content, media_type=document.media_type, headers=headers)
 
     @app.post("/recrutement/offres/{job_slug}/candidater", tags=["public"])
     async def submit_job_application(
