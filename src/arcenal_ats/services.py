@@ -69,6 +69,7 @@ class ApplicationOverview:
     job_title: str
     stage: PipelineStage
     cover_letter: str | None
+    latest_note: str | None
 
 
 def published_jobs(session: Session) -> list[Job]:
@@ -135,14 +136,21 @@ def application_overviews(session: Session) -> list[ApplicationOverview]:
         .outerjoin(Job, Application.job_id == Job.id)
         .order_by(Application.created_at.desc())
     )
-    return [application_overview(*row) for row in session.execute(statement).all()]
+    return [application_overview(session, *row) for row in session.execute(statement).all()]
 
 
 def application_overview(
+    session: Session,
     application: Application,
     candidate: Candidate,
     job: Job | None,
 ) -> ApplicationOverview:
+    latest_note = session.scalar(
+        select(ApplicationNote.content)
+        .where(ApplicationNote.application_id == application.id)
+        .order_by(ApplicationNote.created_at.desc())
+        .limit(1)
+    )
     return ApplicationOverview(
         application.id,
         f"{candidate.first_name} {candidate.last_name}",
@@ -150,6 +158,7 @@ def application_overview(
         job.title if job else "Candidature spontanée",
         application.stage,
         application.cover_letter,
+        latest_note,
     )
 
 

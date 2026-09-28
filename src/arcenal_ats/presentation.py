@@ -167,7 +167,7 @@ def internal_jobs_page(
 
 
 def internal_applications_page(
-    applications: list[tuple[str, str, str, str, str, str | None]],
+    applications: list[tuple[str, str, str, str, str, str | None, str | None]],
     base_path: str,
 ) -> str:
     rows = "".join(internal_application_row(application, base_path) for application in applications)
@@ -210,17 +210,18 @@ def internal_job_row(job: tuple[str, str, str, str], base_path: str) -> str:
 
 
 def internal_application_row(
-    application: tuple[str, str, str, str, str, str | None],
+    application: tuple[str, str, str, str, str, str | None, str | None],
     base_path: str,
 ) -> str:
-    identifier, name, email, job_title, stage, cover_letter = application
+    identifier, name, email, job_title, stage, cover_letter, latest_note = application
     options = pipeline_options(stage)
     letter = escape(cover_letter or "Aucun message")
+    note = escape(latest_note or "Aucune note")
     return (
         f"<tr><td>{escape(name)}<br><span class='arc-meta'>{escape(email)}</span></td>"
         f"<td>{escape(job_title)}</td><td><form class='arc-inline-form' action='{base_path}/interne/candidatures/{quote(identifier)}/pipeline' method='post'>"
         f"<select name='stage'>{options}</select><textarea name='note' placeholder='Ajouter une note'></textarea>"
-        f"<button class='arc-small-button' type='submit'>Enregistrer</button></form></td><td>{letter}</td></tr>"
+        f"<button class='arc-small-button' type='submit'>Enregistrer</button></form></td><td>{letter}<br><span class='arc-meta'>{note}</span></td></tr>"
     )
 
 

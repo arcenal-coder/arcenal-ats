@@ -218,6 +218,7 @@ def register_routes(app: FastAPI) -> None:
                 item.job_title,
                 item.stage.value,
                 item.cover_letter,
+                item.latest_note,
             )
             for item in overviews
         ]

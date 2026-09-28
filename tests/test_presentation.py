@@ -49,13 +49,24 @@ class PresentationTest(unittest.TestCase):
 
     def test_renders_the_full_v1_pipeline_in_the_recruiter_view(self) -> None:
         page = internal_applications_page(
-            [("abc", "Ada Lovelace", "ada@example.test", "Python", "new", None)],
+            [
+                (
+                    "abc",
+                    "Ada Lovelace",
+                    "ada@example.test",
+                    "Python",
+                    "new",
+                    None,
+                    "Note de suivi",
+                )
+            ],
             "/ats",
         )
 
         self.assertIn("À qualifier", page)
         self.assertIn("À décider", page)
         self.assertIn("Vivier", page)
+        self.assertIn("Note de suivi", page)
 
     def test_renders_a_careers_link_to_a_job(self) -> None:
         page = careers_page([("python-developer", "Python Developer", "Paris")], "/ats")
