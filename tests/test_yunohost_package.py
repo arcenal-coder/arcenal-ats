@@ -53,6 +53,12 @@ class YunoHostInstallScriptTest(unittest.TestCase):
 
         self.assertNotIn("ynh_find_port", install_script)
 
+    def test_uses_the_helper_21_apt_dependency_api(self) -> None:
+        install_script: str = (PROJECT_ROOT / "scripts" / "install").read_text()
+
+        self.assertIn("ynh_apt_install_dependencies", install_script)
+        self.assertNotIn("ynh_install_app_dependencies", install_script)
+
     def test_loads_common_settings_from_each_script_directory(self) -> None:
         script_directory: Path = PROJECT_ROOT / "scripts"
         script_paths: tuple[Path, ...] = tuple(script_directory.glob("*"))

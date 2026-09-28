@@ -7,7 +7,7 @@ ynh_script_progression --message="Installing ARCenal ATS" --weight=1
 ynh_system_user_create --username="$app" --home_dir="$install_dir"
 
 ynh_script_progression --message="Preparing the application runtime" --weight=5
-ynh_install_app_dependencies python3-venv python3-pip
+ynh_apt_install_dependencies python3-venv python3-pip
 install -d --mode=0750 --owner="$app" --group="$app" "$install_dir" "$data_dir/documents"
 cp -a "$YNH_APP_BASEDIR/src" "$install_dir/"
 cp -a "$YNH_APP_BASEDIR/migrations" "$install_dir/"
