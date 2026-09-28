@@ -46,7 +46,7 @@ La configuration Nginx est maintenant fondée sur des préfixes explicites : ell
 
 Le parcours public réel comprend une candidature à une offre et une candidature spontanée, le contrôle du consentement, du CV (format et taille), l'écriture hors zone publique et une confirmation après dépôt. La dépendance `email-validator` est déclarée dans le paquet pour rendre ce contrôle disponible dès une installation propre, sans intervention manuelle.
 
-## Parcours recruteur livré et recette de production
+## Parcours recruteur en cours de finalisation
 
 L'espace `/interne` est protégé par SSOwat et permet désormais de créer un brouillon, publier une offre, consulter les candidatures, modifier l'étape de pipeline et ajouter une note. La migration `20260928_02` ajoute la table de notes et la valeur `TALENT_POOL` sans réécrire les étapes existantes.
 
@@ -55,6 +55,8 @@ Le 2026-09-28, la recette sur l'instance Onyx a validé l'installation et deux m
 Un brouillon de recette et une candidature spontanée de recette ont confirmé le stockage privé du CV, la création du dossier candidat, le passage vers l'étape « qualification » et l'affichage de la note de suivi dans l'espace recruteur. Le CV reste sous `/var/lib/arcenal_ats/documents` (hors racine web). La publication d'une offre de recette n'a pas été effectuée afin de ne pas rendre une annonce de test visible au public.
 
 La suppression, la restauration complète et la publication d'une offre réelle restent des opérations à réaliser explicitement par l'administrateur lorsqu'il le souhaitera.
+
+Depuis ce déploiement, le dépôt `main` contient deux lots non encore publiés sur Onyx : `f650b31` ajoute le Kanban, le dossier candidat, les documents privés et l'historique ; `516f59d` ajoute recherche, modification et archivage des offres. Les tests unitaires purs sont à 33 réussites. Le prochain bloc est les rôles applicatifs et les paramètres persistants, prérequis aux écrans Administration, RGPD et ARCenal Agent.
 
 ## Limites connues
 
