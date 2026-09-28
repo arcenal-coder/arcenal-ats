@@ -17,6 +17,10 @@ from arcenal_ats.config import default_settings
 from arcenal_ats.database import create_session_factory, session_scope
 from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY, DomainValidationError, PipelineStage
 from arcenal_ats.presentation import (
+    internal_applications_page as render_internal_applications_page,
+    internal_dashboard_page as render_internal_dashboard_page,
+    internal_jobs_page as render_internal_jobs_page,
+    internal_talent_pool_page as render_internal_talent_pool_page,
     careers_page as render_careers_page,
     application_confirmation_page as render_application_confirmation_page,
     job_page as render_job_page,
@@ -36,13 +40,19 @@ from arcenal_ats.schemas import (
 )
 from arcenal_ats.services import (
     PublicApplicationService,
+    add_application_note,
     application_candidate_id,
+    application_overviews,
     create_draft_job,
+    internal_jobs,
     move_application,
+    publish_job,
     published_jobs,
     published_job,
+    record_audit_event,
     register_document,
     search_talent_pool,
+    talent_pool_candidates,
 )
 from arcenal_ats.storage import PrivateDocumentStore
 
@@ -141,6 +151,105 @@ def register_routes(app: FastAPI) -> None:
     )
     def privacy_page(request: Request) -> str:
         return render_privacy_page(request.app.state.public_base_path)
+
+    @app.get("/interne", response_class=HTMLResponse, tags=["internal"])
+    def internal_dashboard(
+        request: Request,
+        _: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> str:
+        return render_internal_dashboard_page(
+            len(internal_jobs(session)),
+            len(application_overviews(session)),
+            len(talent_pool_candidates(session)),
+            request.app.state.public_base_path,
+        )
+
+    @app.get("/interne/offres", response_class=HTMLResponse, tags=["internal"])
+    def internal_jobs_page(
+        request: Request,
+        _: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> str:
+        jobs = internal_jobs(session)
+        values = [(job.slug, job.title, job.location, job.status.value) for job in jobs]
+        return render_internal_jobs_page(values, request.app.state.public_base_path)
+
+    @app.post("/interne/offres", tags=["internal"])
+    def create_internal_job(
+        request: Request,
+        user: str = Depends(require_yunohost_user),
+        slug: str = Form(...),
+        title: str = Form(...),
+        location: str = Form(...),
+        contract_type: str = Form(...),
+        summary: str = Form(...),
+        description: str = Form(...),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        payload = internal_job_payload(slug, title, location, contract_type, summary, description)
+        job = create_draft_job(session, payload)
+        record_internal_job_creation(session, job.id, user)
+        return internal_redirect(request, "/interne/offres")
+
+    @app.post("/interne/offres/{job_slug}/publier", tags=["internal"])
+    def publish_internal_job(
+        job_slug: str,
+        request: Request,
+        user: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        publish_job(session, job_slug, user)
+        return internal_redirect(request, "/interne/offres")
+
+    @app.get("/interne/candidatures", response_class=HTMLResponse, tags=["internal"])
+    def internal_applications_page(
+        request: Request,
+        _: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> str:
+        overviews = application_overviews(session)
+        values = [
+            (
+                str(item.application_id),
+                item.candidate_name,
+                item.candidate_email,
+                item.job_title,
+                item.stage.value,
+                item.cover_letter,
+            )
+            for item in overviews
+        ]
+        return render_internal_applications_page(values, request.app.state.public_base_path)
+
+    @app.post("/interne/candidatures/{application_id}/pipeline", tags=["internal"])
+    def update_internal_pipeline(
+        application_id: UUID,
+        request: Request,
+        user: str = Depends(require_yunohost_user),
+        stage: str = Form(...),
+        note: str = Form(""),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        try:
+            move_application(session, application_id, PipelineStage(stage), user)
+            add_optional_note(session, application_id, note, user)
+        except (LookupError, ValueError) as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return internal_redirect(request, "/interne/candidatures")
+
+    @app.get("/interne/vivier", response_class=HTMLResponse, tags=["internal"])
+    def internal_talent_pool_page(
+        request: Request,
+        _: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> str:
+        candidates = talent_pool_candidates(session)
+        values = [
+            (f"{item.first_name} {item.last_name}", item.email, item.location or "—")
+            for item in candidates
+        ]
+        return render_internal_talent_pool_page(values, request.app.state.public_base_path)
 
     @app.post("/recrutement/offres/{job_slug}/candidater", tags=["public"])
     async def submit_job_application(
@@ -334,6 +443,41 @@ def public_application_payload(
         )
     except ValidationError as error:
         raise HTTPException(status_code=422, detail=error.errors()) from error
+
+
+def internal_job_payload(
+    slug: str,
+    title: str,
+    location: str,
+    contract_type: str,
+    summary: str,
+    description: str,
+) -> JobCreate:
+    try:
+        return JobCreate(
+            slug=slug,
+            title=title,
+            location=location,
+            contract_type=contract_type,
+            summary=summary,
+            description=description,
+        )
+    except ValidationError as error:
+        raise HTTPException(status_code=422, detail=error.errors()) from error
+
+
+def record_internal_job_creation(session: Session, job_id: UUID, actor: str) -> None:
+    record_audit_event(session, actor, "job.created", "job", job_id)
+
+
+def add_optional_note(session: Session, application_id: UUID, note: str, actor: str) -> None:
+    if note.strip():
+        add_application_note(session, application_id, note, actor)
+
+
+def internal_redirect(request: Request, path: str) -> RedirectResponse:
+    base_path: str = request.app.state.public_base_path
+    return RedirectResponse(f"{base_path}{path}", status_code=303)
 
 
 def careers_application_form(

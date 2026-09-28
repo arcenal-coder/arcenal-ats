@@ -63,6 +63,14 @@ class Document(TimestampedEntity, Base):
     byte_size: Mapped[int] = mapped_column()
 
 
+class ApplicationNote(TimestampedEntity, Base):
+    __tablename__ = "application_notes"
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    application_id: Mapped[UUID] = mapped_column(ForeignKey("applications.id"), index=True)
+    author: Mapped[str] = mapped_column(String(255))
+    content: Mapped[str] = mapped_column(Text)
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)

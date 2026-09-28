@@ -21,6 +21,7 @@ class PipelineStage(str, Enum):
     OFFER = "offer"
     HIRED = "hired"
     REJECTED = "rejected"
+    TALENT_POOL = "talent_pool"
 
 
 class DomainValidationError(ValueError):

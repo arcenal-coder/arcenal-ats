@@ -46,9 +46,11 @@ La configuration Nginx est maintenant fondée sur des préfixes explicites : ell
 
 Le parcours public réel comprend une candidature à une offre et une candidature spontanée, le contrôle du consentement, du CV (format et taille), l'écriture hors zone publique et une confirmation après dépôt. La dépendance `email-validator` est déclarée dans le paquet pour rendre ce contrôle disponible dès une installation propre, sans intervention manuelle.
 
-## Prochaine unité fonctionnelle
+## Parcours recruteur livré en attente de recette
 
-Construire les écrans internes et les services correspondants pour créer/publier une offre, consulter les candidatures reçues, déplacer chaque candidature dans le pipeline V1 et ajouter une note historisée.
+L'espace `/interne` est protégé par SSOwat et permet désormais de créer un brouillon, publier une offre, consulter les candidatures, modifier l'étape de pipeline et ajouter une note. La migration `20260928_02` ajoute la table de notes et la valeur `TALENT_POOL` sans réécrire les étapes existantes.
+
+La prochaine unité est la recette installée R1–R10 : déployer le paquet, créer/publier une offre, déposer un CV depuis le portail public et vérifier sa réception dans l'espace recruteur.
 
 ## Limites connues
 

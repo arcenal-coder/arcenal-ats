@@ -50,7 +50,9 @@ class JobCreate(BaseModel):
 
 
 class PipelineMove(BaseModel):
-    stage: str = Field(pattern=r"^(new|qualifying|interview|offer|hired|rejected)$")
+    stage: str = Field(
+        pattern=r"^(new|qualifying|interview|offer|hired|rejected|talent_pool)$"
+    )
 
 
 class InternalCandidate(BaseModel):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY, DomainValidationError
+from arcenal_ats.domain import DEFAULT_UPLOAD_POLICY, DomainValidationError, PipelineStage
 
 
 class UploadPolicyTest(unittest.TestCase):
@@ -20,3 +20,8 @@ class UploadPolicyTest(unittest.TestCase):
     def test_rejects_an_unsupported_media_type(self) -> None:
         with self.assertRaises(DomainValidationError):
             DEFAULT_UPLOAD_POLICY.validate("cv.exe", "application/octet-stream", 1024)
+
+
+class PipelineStageTest(unittest.TestCase):
+    def test_supports_the_v1_talent_pool_stage(self) -> None:
+        self.assertEqual(PipelineStage.TALENT_POOL.value, "talent_pool")

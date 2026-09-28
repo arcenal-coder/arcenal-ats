@@ -4,9 +4,9 @@ ARCenal ATS is a standalone FastAPI/PostgreSQL recruitment application prepared 
 
 ## V1 scope
 
-- candidates, job offers, applications, configurable pipeline foundations, and audit trail tables;
-- public careers URL at `/recrutement`, with a separate public API for job listings and applications;
-- spontaneous applications;
+- candidates, job offers, applications, the V1 pipeline, notes and audit trail tables;
+- public careers URL at `/recrutement`, with offer and spontaneous application forms;
+- recruiter screens at `/interne` for offers, applications and the talent pool;
 - private document storage outside the web root, with strict file metadata validation;
 - YunoHost internal authentication boundary through the `Remote-User` header supplied by SSOwat;
 - AACP/1 capability discovery endpoint, deliberately limited to business capabilities;
@@ -29,6 +29,8 @@ The application requires PostgreSQL. Set an explicit production database URL and
 ## Public integration
 
 The default public page is `https://your-domain.example/ats/recrutement`. A client website can link to it directly; no API or script is necessary. The supported public API starts at `/public-api/v1`. It never returns candidate or document data. For an external site, add the exact site origin to the CORS allow-list, then embed `/public/arcenal-jobs.js`; the small widget renders published offers only.
+
+After a YunoHost installation, the public path is deliberately unauthenticated while `/interne` remains protected by SSOwat. Recruiters create a draft, publish it, then handle incoming applications through: Reçue, À qualifier, Entretien, À décider, Acceptée, Refusée or Vivier. A CV is always stored in the private document directory; it is never given a public Nginx URL.
 
 ## Security boundary
 

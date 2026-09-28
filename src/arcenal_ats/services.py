@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from arcenal_ats.domain import JobStatus, PipelineStage
-from arcenal_ats.models import Application, Candidate, Document, Job
+from arcenal_ats.models import Application, ApplicationNote, AuditEvent, Candidate, Document, Job
 from arcenal_ats.schemas import JobCreate, PublicApplicationCreate
 
 
@@ -60,6 +60,16 @@ class PublicApplicationService:
             raise PermissionError("Explicit privacy consent is required.")
 
 
+@dataclass(frozen=True)
+class ApplicationOverview:
+    application_id: UUID
+    candidate_name: str
+    candidate_email: str
+    job_title: str
+    stage: PipelineStage
+    cover_letter: str | None
+
+
 def published_jobs(session: Session) -> list[Job]:
     statement = select(Job).where(Job.status == JobStatus.PUBLISHED).order_by(
         Job.created_at.desc()
@@ -88,17 +98,93 @@ def create_draft_job(session: Session, payload: JobCreate) -> Job:
     return job
 
 
+def publish_job(session: Session, slug: str, actor: str) -> Job:
+    job = session.scalar(select(Job).where(Job.slug == slug))
+    if job is None:
+        raise LookupError("Job not found.")
+    job.status = JobStatus.PUBLISHED
+    session.flush()
+    record_audit_event(session, actor, "job.published", "job", job.id)
+    return job
+
+
+def internal_jobs(session: Session) -> list[Job]:
+    return list(session.scalars(select(Job).order_by(Job.created_at.desc())))
+
+
 def move_application(
     session: Session,
     application_id: UUID,
     stage: PipelineStage,
+    actor: str = "system",
 ) -> Application:
     application = session.get(Application, application_id)
     if application is None:
         raise LookupError("Application not found.")
     application.stage = stage
     session.flush()
+    record_audit_event(session, actor, "application.stage_changed", "application", application.id)
     return application
+
+
+def application_overviews(session: Session) -> list[ApplicationOverview]:
+    statement = (
+        select(Application, Candidate, Job)
+        .join(Candidate, Application.candidate_id == Candidate.id)
+        .outerjoin(Job, Application.job_id == Job.id)
+        .order_by(Application.created_at.desc())
+    )
+    return [application_overview(*row) for row in session.execute(statement).all()]
+
+
+def application_overview(
+    application: Application,
+    candidate: Candidate,
+    job: Job | None,
+) -> ApplicationOverview:
+    return ApplicationOverview(
+        application.id,
+        f"{candidate.first_name} {candidate.last_name}",
+        candidate.email,
+        job.title if job else "Candidature spontanée",
+        application.stage,
+        application.cover_letter,
+    )
+
+
+def add_application_note(
+    session: Session,
+    application_id: UUID,
+    content: str,
+    author: str,
+) -> ApplicationNote:
+    if session.get(Application, application_id) is None:
+        raise LookupError("Application not found.")
+    normalized_content = content.strip()
+    if not normalized_content:
+        raise ValueError("A note cannot be empty.")
+    note = ApplicationNote(application_id=application_id, author=author, content=normalized_content)
+    session.add(note)
+    session.flush()
+    record_audit_event(session, author, "application.note_added", "application", application_id)
+    return note
+
+
+def record_audit_event(
+    session: Session,
+    actor: str,
+    action: str,
+    subject_type: str,
+    subject_id: UUID,
+) -> None:
+    session.add(
+        AuditEvent(
+            actor=actor,
+            action=action,
+            subject_type=subject_type,
+            subject_id=subject_id,
+        )
+    )
 
 
 def search_talent_pool(session: Session, query: str) -> list[Candidate]:
@@ -107,6 +193,10 @@ def search_talent_pool(session: Session, query: str) -> list[Candidate]:
         Candidate.skills.ilike(text) | Candidate.location.ilike(text)
     )
     return list(session.scalars(statement))
+
+
+def talent_pool_candidates(session: Session) -> list[Candidate]:
+    return list(session.scalars(select(Candidate).order_by(Candidate.created_at.desc())))
 
 
 def register_document(

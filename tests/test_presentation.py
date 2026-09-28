@@ -4,6 +4,8 @@ import unittest
 
 from arcenal_ats.presentation import (
     careers_page,
+    internal_applications_page,
+    internal_jobs_page,
     job_page,
     spontaneous_application_page,
     stylesheet,
@@ -35,6 +37,25 @@ class PresentationTest(unittest.TestCase):
 
         self.assertIn("/ats/recrutement/candidature-spontanee", page)
         self.assertIn("politique de confidentialité", page)
+
+    def test_renders_recruiter_actions_under_the_internal_path(self) -> None:
+        page = internal_jobs_page(
+            [("python-developer", "Python Developer", "Paris", "draft")],
+            "/ats",
+        )
+
+        self.assertIn("/ats/interne/offres", page)
+        self.assertIn("/ats/interne/offres/python-developer/publier", page)
+
+    def test_renders_the_full_v1_pipeline_in_the_recruiter_view(self) -> None:
+        page = internal_applications_page(
+            [("abc", "Ada Lovelace", "ada@example.test", "Python", "new", None)],
+            "/ats",
+        )
+
+        self.assertIn("À qualifier", page)
+        self.assertIn("À décider", page)
+        self.assertIn("Vivier", page)
 
     def test_renders_a_careers_link_to_a_job(self) -> None:
         page = careers_page([("python-developer", "Python Developer", "Paris")], "/ats")

@@ -37,6 +37,15 @@ a:hover { color: var(--arc-amber); }
 .arc-consent { align-items: start; color: #ddd5bc; display: flex !important; font-size: .9rem; font-weight: 400 !important; gap: .6rem; }
 .arc-consent input { margin-top: .3rem; width: auto; }
 .arc-notice { background: #1d2a28; border-left: 4px solid var(--arc-green); border-radius: .25rem; padding: 1rem 1.25rem; }
+.arc-nav { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.5rem 0 2rem; }
+.arc-stat-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); }
+.arc-stat { background: var(--arc-surface); border-radius: .75rem; padding: 1rem; }
+.arc-stat strong { color: var(--arc-gold); display: block; font-size: 2rem; }
+.arc-table { border-collapse: collapse; margin-top: 1.5rem; width: 100%; }
+.arc-table td, .arc-table th { border-bottom: 1px solid #3a3652; padding: .8rem .5rem; text-align: left; vertical-align: top; }
+.arc-inline-form { display: grid; gap: .5rem; margin: 0; }
+.arc-inline-form select, .arc-inline-form textarea { background: #11111e; border: 1px solid #57516e; border-radius: .4rem; color: var(--arc-cream); font: inherit; padding: .45rem; }
+.arc-small-button { background: transparent; border: 1px solid var(--arc-gold); border-radius: .35rem; color: var(--arc-gold); font: inherit; font-weight: 700; padding: .4rem .6rem; }
 .arc-footer { border-top: 1px solid #3a3652; color: #bfb79e; font-size: .85rem; margin-top: 3rem; padding-top: 1.25rem; }
 @media (max-width: 600px) { .arc-shell { padding-top: 1.25rem; } .arc-hero { padding-top: 3rem; } .arc-header { align-items: flex-start; flex-direction: column; gap: .75rem; } }
 """.strip()
@@ -124,6 +133,109 @@ def privacy_page(base_path: str) -> str:
     return document("Politique de confidentialité", content, base_path)
 
 
+def internal_dashboard_page(
+    job_count: int,
+    application_count: int,
+    talent_count: int,
+    base_path: str,
+) -> str:
+    content = (
+        "<p class='arc-kicker'>Espace recruteur</p><h1>Pilotage du recrutement</h1>"
+        "<section class='arc-stat-grid'>"
+        f"{stat_card('Offres', job_count)}{stat_card('Candidatures', application_count)}"
+        f"{stat_card('Vivier', talent_count)}</section>"
+    )
+    return internal_document("Tableau de bord", content, base_path)
+
+
+def internal_jobs_page(
+    jobs: list[tuple[str, str, str, str]],
+    base_path: str,
+) -> str:
+    rows = "".join(internal_job_row(job, base_path) for job in jobs)
+    content = (
+        "<p class='arc-kicker'>Offres</p><h1>Offres d'emploi</h1>"
+        f"<form class='arc-form' action='{base_path}/interne/offres' method='post'>"
+        "<label>Identifiant URL<input name='slug' required pattern='[a-z0-9-]+'></label>"
+        "<label>Intitulé<input name='title' required></label><label>Localisation<input name='location' required></label>"
+        "<label>Contrat<input name='contract_type' required></label><label>Résumé<textarea name='summary' required></textarea></label>"
+        "<label>Description<textarea name='description' required></textarea></label>"
+        "<button class='arc-button' type='submit'>Créer le brouillon</button></form>"
+        f"<table class='arc-table'><thead><tr><th>Offre</th><th>Statut</th><th>Action</th></tr></thead><tbody>{rows}</tbody></table>"
+    )
+    return internal_document("Offres", content, base_path)
+
+
+def internal_applications_page(
+    applications: list[tuple[str, str, str, str, str, str | None]],
+    base_path: str,
+) -> str:
+    rows = "".join(internal_application_row(application, base_path) for application in applications)
+    content = (
+        "<p class='arc-kicker'>Candidatures</p><h1>Pipeline de recrutement</h1>"
+        "<table class='arc-table'><thead><tr><th>Candidate ou candidat</th><th>Offre</th>"
+        f"<th>Étape</th><th>Suivi</th></tr></thead><tbody>{rows}</tbody></table>"
+    )
+    return internal_document("Candidatures", content, base_path)
+
+
+def internal_talent_pool_page(
+    candidates: list[tuple[str, str, str]],
+    base_path: str,
+) -> str:
+    rows = "".join(
+        f"<li class='arc-card'><h2>{escape(name)}</h2><p class='arc-meta'>{escape(email)} · {escape(location)}</p></li>"
+        for name, email, location in candidates
+    )
+    content = (
+        "<p class='arc-kicker'>Vivier</p><h1>Talents</h1>"
+        f"<ul class='arc-list'>{rows}</ul>"
+    )
+    return internal_document("Vivier", content, base_path)
+
+
+def stat_card(label: str, value: int) -> str:
+    return f"<article class='arc-stat'><strong>{value}</strong><span>{escape(label)}</span></article>"
+
+
+def internal_job_row(job: tuple[str, str, str, str], base_path: str) -> str:
+    slug, title, location, status = job
+    action = ""
+    if status == "draft":
+        action = (
+            f"<form class='arc-inline-form' action='{base_path}/interne/offres/{quote(slug)}/publier' method='post'>"
+            "<button class='arc-small-button' type='submit'>Publier</button></form>"
+        )
+    return f"<tr><td>{escape(title)}<br><span class='arc-meta'>{escape(location)}</span></td><td>{escape(status)}</td><td>{action}</td></tr>"
+
+
+def internal_application_row(
+    application: tuple[str, str, str, str, str, str | None],
+    base_path: str,
+) -> str:
+    identifier, name, email, job_title, stage, cover_letter = application
+    options = pipeline_options(stage)
+    letter = escape(cover_letter or "Aucun message")
+    return (
+        f"<tr><td>{escape(name)}<br><span class='arc-meta'>{escape(email)}</span></td>"
+        f"<td>{escape(job_title)}</td><td><form class='arc-inline-form' action='{base_path}/interne/candidatures/{quote(identifier)}/pipeline' method='post'>"
+        f"<select name='stage'>{options}</select><textarea name='note' placeholder='Ajouter une note'></textarea>"
+        f"<button class='arc-small-button' type='submit'>Enregistrer</button></form></td><td>{letter}</td></tr>"
+    )
+
+
+def pipeline_options(current_stage: str) -> str:
+    stages = (
+        ("new", "Reçue"), ("qualifying", "À qualifier"), ("interview", "Entretien"),
+        ("offer", "À décider"), ("hired", "Acceptée"), ("rejected", "Refusée"),
+        ("talent_pool", "Vivier"),
+    )
+    return "".join(
+        f"<option value='{value}'{' selected' if value == current_stage else ''}>{label}</option>"
+        for value, label in stages
+    )
+
+
 def job_card(slug: str, title: str, location: str, base_path: str) -> str:
     return (
         "<li class='arc-card'><h2>"
@@ -148,3 +260,14 @@ def document(title: str, content: str, base_path: str) -> str:
         f"<main>{content}</main><footer class='arc-footer'>ARCenal ATS · Recrutement</footer>"
         "</div></body></html>"
     )
+
+
+def internal_document(title: str, content: str, base_path: str) -> str:
+    navigation = (
+        "<nav class='arc-nav'>"
+        f"<a href='{base_path}/interne'>Tableau de bord</a>"
+        f"<a href='{base_path}/interne/offres'>Offres</a>"
+        f"<a href='{base_path}/interne/candidatures'>Candidatures</a>"
+        f"<a href='{base_path}/interne/vivier'>Vivier</a></nav>"
+    )
+    return document(title, f"{navigation}{content}", base_path)
