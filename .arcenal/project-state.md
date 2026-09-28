@@ -46,11 +46,15 @@ La configuration Nginx est maintenant fondée sur des préfixes explicites : ell
 
 Le parcours public réel comprend une candidature à une offre et une candidature spontanée, le contrôle du consentement, du CV (format et taille), l'écriture hors zone publique et une confirmation après dépôt. La dépendance `email-validator` est déclarée dans le paquet pour rendre ce contrôle disponible dès une installation propre, sans intervention manuelle.
 
-## Parcours recruteur livré en attente de recette
+## Parcours recruteur livré et recette de production
 
 L'espace `/interne` est protégé par SSOwat et permet désormais de créer un brouillon, publier une offre, consulter les candidatures, modifier l'étape de pipeline et ajouter une note. La migration `20260928_02` ajoute la table de notes et la valeur `TALENT_POOL` sans réécrire les étapes existantes.
 
-La prochaine unité est la recette installée R1–R10 : déployer le paquet, créer/publier une offre, déposer un CV depuis le portail public et vérifier sa réception dans l'espace recruteur.
+Le 2026-09-28, la recette sur l'instance Onyx a validé l'installation et deux mises à jour consécutives jusqu'au paquet `0.1.0~ynh15`. Le service est actif, `/healthz` répond `200`, et le portail `/ats/recrutement` répond `200`.
+
+Un brouillon de recette et une candidature spontanée de recette ont confirmé le stockage privé du CV, la création du dossier candidat, le passage vers l'étape « qualification » et l'affichage de la note de suivi dans l'espace recruteur. Le CV reste sous `/var/lib/arcenal_ats/documents` (hors racine web). La publication d'une offre de recette n'a pas été effectuée afin de ne pas rendre une annonce de test visible au public.
+
+La suppression, la restauration complète et la publication d'une offre réelle restent des opérations à réaliser explicitement par l'administrateur lorsqu'il le souhaitera.
 
 ## Limites connues
 
