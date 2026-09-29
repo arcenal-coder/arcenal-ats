@@ -416,6 +416,34 @@ def talent_pool_candidates(session: Session, query: str = "") -> list[Candidate]
     return list(session.scalars(statement.order_by(Candidate.created_at.desc())))
 
 
+def reactivate_talent_candidate(
+    session: Session,
+    candidate_id: UUID,
+    job_slug: str,
+    actor: str,
+) -> Application:
+    candidate = find_candidate(session, candidate_id)
+    job = find_internal_job(session, job_slug)
+    application = Application(
+        candidate_id=candidate.id,
+        job_id=job.id,
+        stage=PipelineStage.QUALIFYING,
+        consent_at=datetime.now(UTC),
+    )
+    session.add(application)
+    session.flush()
+    record_audit_event(
+        session,
+        actor,
+        "candidate.reactivated",
+        "application",
+        application.id,
+        PipelineStage.TALENT_POOL.value,
+        PipelineStage.QUALIFYING.value,
+    )
+    return application
+
+
 def register_document(
     session: Session,
     application_id: UUID,

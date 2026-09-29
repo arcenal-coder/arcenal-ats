@@ -98,13 +98,15 @@ class PresentationTest(unittest.TestCase):
 
     def test_renders_a_searchable_talent_pool_under_the_installation_path(self) -> None:
         page = internal_talent_pool_page(
-            [("Ada Lovelace", "ada@example.test", "Paris")],
+            [("candidate", "Ada Lovelace", "ada@example.test", "Paris")],
+            [("python", "Python")],
             "/ats",
         )
 
         self.assertIn("/ats/interne/vivier", page)
         self.assertIn("name='query'", page)
         self.assertIn("Ada Lovelace", page)
+        self.assertIn("/ats/interne/vivier/candidate/reactiver", page)
 
     def test_renders_a_careers_link_to_a_job(self) -> None:
         page = careers_page([("python-developer", "Python Developer", "Paris")], "/ats")

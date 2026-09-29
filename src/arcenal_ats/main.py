@@ -56,6 +56,7 @@ from arcenal_ats.services import (
     published_job,
     record_audit_event,
     register_document,
+    reactivate_talent_candidate,
     update_job,
     search_talent_pool,
     talent_pool_candidates,
@@ -339,10 +340,22 @@ def register_routes(app: FastAPI) -> None:
     ) -> str:
         candidates = talent_pool_candidates(session, query)
         values = [
-            (f"{item.first_name} {item.last_name}", item.email, item.location or "—")
+            (str(item.id), f"{item.first_name} {item.last_name}", item.email, item.location or "—")
             for item in candidates
         ]
-        return render_internal_talent_pool_page(values, request.app.state.public_base_path)
+        jobs = [(job.slug, job.title) for job in internal_jobs(session) if job.status.value == "published"]
+        return render_internal_talent_pool_page(values, jobs, request.app.state.public_base_path)
+
+    @app.post("/interne/vivier/{candidate_id}/reactiver", tags=["internal"])
+    def reactivate_internal_candidate(
+        candidate_id: UUID,
+        request: Request,
+        job_slug: str = Form(...),
+        user: str = Depends(require_yunohost_user),
+        session: Session = Depends(get_session),
+    ) -> RedirectResponse:
+        reactivate_talent_candidate(session, candidate_id, job_slug, user)
+        return internal_redirect(request, "/interne/candidatures")
 
     @app.get("/api/v1/internal/documents/{document_id}", tags=["internal"])
     def download_private_document(

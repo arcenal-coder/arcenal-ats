@@ -217,12 +217,20 @@ def internal_candidate_page(
 
 
 def internal_talent_pool_page(
-    candidates: list[tuple[str, str, str]],
+    candidates: list[tuple[str, str, str, str]],
+    jobs: list[tuple[str, str]],
     base_path: str,
 ) -> str:
+    job_options = "".join(
+        f"<option value='{quote(slug)}'>{escape(title)}</option>" for slug, title in jobs
+    )
     rows = "".join(
-        f"<li class='arc-card'><h2>{escape(name)}</h2><p class='arc-meta'>{escape(email)} · {escape(location)}</p></li>"
-        for name, email, location in candidates
+        "<li class='arc-card'>"
+        f"<h2>{escape(name)}</h2><p class='arc-meta'>{escape(email)} · {escape(location)}</p>"
+        f"<form class='arc-inline-form' action='{base_path}/interne/vivier/{quote(candidate_id)}/reactiver' method='post'>"
+        f"<select name='job_slug' required>{job_options}</select>"
+        "<button class='arc-small-button' type='submit'>Réactiver pour cette offre</button></form></li>"
+        for candidate_id, name, email, location in candidates
     )
     content = (
         "<p class='arc-kicker'>Vivier</p><h1>Talents</h1>"
